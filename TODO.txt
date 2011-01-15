@@ -1,0 +1,1 @@
+Place should make sure that gsave/grestore match and that you can't grestore past the initial point
