@@ -15,8 +15,7 @@ class Inset(Canvas):
   wrapped_methods = [ 'setlinewidth', 'setcolor', 'setrgbcolor', 'setgray', 'newpath',
                 'lineto', 'moveto', 'closepath', 'stroke', 
                 'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphysicalfont', 
-                'setfontsize', 'showglyphs', 'textpoint', 'settextpoint', 'rotate', 
-                'setfont' ]
+                'setfontsize', 'showglyphs', 'rotate', 'setfont' ]
 
   template = '''def %s(self,*args,**kwargs): 
                    self.script.append((Canvas.%s,args,kwargs)); 

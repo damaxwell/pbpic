@@ -16,7 +16,6 @@ class GState:
     self.fontdescriptor = None
     self.font = None
     self.fontsize = 12
-    self.textPoint = None
   
     self.ctm=AffineTransform()
     self.pendingdict = {}
@@ -31,19 +30,16 @@ class GState:
   def copy(self):
     copy=GState(init=False)
     copy.__dict__.update(self.__dict__)
-    # copy.path=self.path.copy()
-    if self.textPoint is None:
-      copy.textPoint = None
-    else:
-      copy.textPoint=Point(self.textPoint.x,self.textPoint.y)
+    copy.path=self.path.copy()
     copy.ctm=self.ctm.copy()
     copy.pendingdict = self.pendingdict.copy()
     return copy
     
   def texttm(self):
     ttm = self.ctm.orthoFrameX()
-    ttm.tx = self.textPoint.x
-    ttm.ty = self.textPoint.y
+    self.path.verify_cp()
+    ttm.tx = self.path.cp.x
+    ttm.ty = self.path.cp.y
     ttm.dilate(self.fontsize)
     return ttm
 
@@ -58,15 +54,6 @@ class GState:
       return
     self.color=c
     self.setpending('color')
-
-  def settextpoint(self,p):
-    if self.textPoint != p:
-      self.textPoint = p
-      self.setpending('textpoint')
-
-  def advancetextpoint(self,v):
-    self.textPoint += v
-    self.setpending('textpoint')
 
   def setphysicalfont(self,fontdescriptor):
     if self.fontdescriptor == fontdescriptor:

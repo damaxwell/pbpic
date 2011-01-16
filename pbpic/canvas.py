@@ -218,8 +218,7 @@ class Canvas:
     for m in metrics:
       adv += m.advance
     adv = self.gstate.texttm().Tv(adv)
-    self.gstate.advancetextpoint(adv)
-
+    self.gstate.path.rmoveto(adv)
 
   def scaleto(self,size):
     self.gstate.ctm.makeortho()
@@ -237,10 +236,15 @@ class Canvas:
     elif len(args) == 1:
       p = args[0]
       if isinstance(p,str):
-        p = self.Tinv(self.pagemark(p))
+        q = self.pagemark(p)
+        print 'pagemark', q
+        p = self.Tinv(q)
+        print self.gstate.ctm
+        print p
       elif isinstance(p,PagePoint):
         p = self.Tinv(p)
       x=p[0]; y=p[1]
+    print 'translate %g %g' % (x,y)
     self.gstate.ctm.translate(x,y)
 
   def rotate(self,theta):
@@ -286,6 +290,9 @@ class Canvas:
   def gsave(self):
     # self.gstate.copy()
     self.gstack.append(self.gstate.copy())
+
+    print self.gstate.path
+    print 'gsave', self.gstack[-1].path
     return GRestorer(self)
   
   def grestore(self):

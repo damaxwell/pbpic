@@ -8,6 +8,7 @@ from metric import pt, cm, inch, Polar, FPolar, DPolar, Vector
 from color import RGBColor, GrayColor
 import color
 from inset import Inset
+import texinset
 
 _canvas = None
 
@@ -15,8 +16,8 @@ template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kw
 functions = [ 'setlinewidth', 'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
               'lineto', 'moveto', 'polygon', 'closepath', 'stroke', 
               'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphyscialfont', 
-              'showglyphs', 'textpoint', 'settextpoint', 'rotate', 'frotate', 
-              'setfont', 'findfont', 'show', 'stringwidth', 'offset', 'point',
+              'showglyphs', 'rotate', 'frotate', 
+              'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
               'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'placetex' ]
 for f in functions:
   filled_template = template % (f,f)
@@ -103,11 +104,11 @@ class InsetGuard:
 
 def text(s):
   with inset() as i:
-    settextpoint(0,0)
+    moveto(0,0)
     show(s)
   i.setextents(i.markedbox())
   return i
 
-def placetex(self,text,*args,**kwargs):
-  i = texinset(text)
+def placetex(text,*args,**kwargs):
+  i = texinset.texinset(text)
   place(i,*args,**kwargs)

@@ -85,7 +85,7 @@ class AffineTransform:
       xx=p[0]; yy=p[1]
     else:
       raise ValueError()
-    x=xx-self.tx; y=yy-self.tx
+    x=xx-self.tx; y=yy-self.ty
     det = self.a*self.d-self.b*self.c
     return Point((self.d*x-self.c*y)/det,(self.a*y-self.b*x)/det)
 
@@ -167,6 +167,14 @@ class Path:
     self.coords = []
     self.cp = None
 
+  def copy(self):
+    cpath = Path()
+    cpath.commands = [ c for c in self.commands ]
+    cpath.coords = [ p.copy() for p in self.coords ]
+    if self.cp:
+      cpath.cp = self.cp.copy()
+    return cpath
+
   def __repr__(self):
     s = "Path:"
     cmd = ['M','L','C','CP']
@@ -179,7 +187,10 @@ class Path:
       yield self.commands[k],self.coords[k]
 
   def __add__(self,p):
-    self.moveto(p)
+    if p == 0:
+      self.closepath()
+    else:
+      self.moveto(p)
     return self
 
   def __sub__(self,p):
@@ -194,6 +205,9 @@ class Path:
   def setcurrentpoint(self,*args):
     p = toOnePoint(*args)
     self.cp = p
+
+  def advancecurrentpoint(self,v):
+    self.cp += v
 
   def moveto(self, *args):
     p = toOnePoint(*args)
@@ -210,13 +224,6 @@ class Path:
     self.commands.append(self.LINETO)
     self.cp = p
     self.coords.append(self.cp)
-
-  # def rlineto(self, *args):
-  #   self.verify_cp()
-  #   (x,y)=toOnePoint(*args)
-  #   self.commands.append(self.LINETO)
-  #   self.cp = (self.cp[0]+x,self.cp[1]+y)
-  #   self.coords.append(self.cp)
 
   def curveto(self, *args):
     self.verify_cp()
@@ -247,7 +254,6 @@ class Path:
     self.verify_cp()
     self.commands.append(self.CLOSEPATH)
     self.coords.append(())
-    # self.cp = self.start
 
   def append(self,p):
     self.commands.extend(p.commands)

@@ -28,7 +28,7 @@ class FileSweeper:
 class TexProcessor:
   
   standard_LaTeX_command = r'latex -interaction=nonstopmode'
-  standard_LaTeX_preamble = r'\documentclass{article}\pagestyle{empty}\begin{document}'
+  standard_LaTeX_preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\usepackage[lf]{MinionPro}\begin{document}'
   standard_LaTeX_postamble = r'\end{document}'
 
   def __init__(self,command,preamble,postamble):
@@ -39,6 +39,7 @@ class TexProcessor:
     self.errmsg = None
     
   def run(self,text,texFileName=None):
+    print'texstrat'
     body = self.preamble+text+self.postamble
     if texFileName is None:
       texFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))
@@ -63,6 +64,7 @@ class TexProcessor:
         else:
           self._errmsg = m.group(0)
         raise Exception(self._errmsg)
+    print'texend'
 
   def dvi(self):
     return self._dvi
@@ -100,7 +102,7 @@ class DviToInset(tex.dvi.DviReader):
       self.canvas.mark(point=(x,-y),name='origin')
       self.firstChar = False
 
-    self.canvas.settextpoint(x,-y)
+    self.canvas.moveto(x,-y)
     s = chr(c)
     self.canvas.show(s)
 

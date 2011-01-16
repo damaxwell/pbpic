@@ -77,8 +77,8 @@ class PDFRenderer:
     tm=gstate.texttm()
     tm.c *= -1
     tm.b *= -1
-    tm.tx = gstate.textPoint.x - self.tx
-    tm.ty = self.ty-gstate.textPoint.y
+    tm.tx = gstate.path.cp.x - self.tx
+    tm.ty = self.ty-gstate.path.cp.y
     self.ctx.set_matrix(cairo.Matrix(*tm.asTuple()))
     gstate.updatetextstate(self)
     self.lastOperation = 'text'
