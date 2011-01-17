@@ -3,8 +3,8 @@ from render_bbox import BBoxRenderer
 
 class Inset(Canvas):
   
-  def __init__(self):
-    Canvas.__init__(self)
+  def __init__(self,*args):
+    Canvas.__init__(self,*args)
     self.script=[]
 
   def drawto(self,canvas):
@@ -12,10 +12,11 @@ class Inset(Canvas):
       args=f[1]; kwargs=f[2]
       f[0](canvas,*args,**kwargs)
 
-  wrapped_methods = [ 'setlinewidth', 'setcolor', 'setrgbcolor', 'setgray', 'newpath',
-                'lineto', 'moveto', 'closepath', 'stroke', 
-                'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphysicalfont', 
-                'setfontsize', 'showglyphs', 'rotate', 'setfont' ]
+  wrapped_methods = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
+                      'setcolor', 'setrgbcolor', 'setgray', 'newpath',
+                      'lineto', 'moveto', 'closepath', 'stroke', 
+                      'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphysicalfont', 
+                      'setfontsize', 'showglyphs', 'rotate', 'setfont' ]
 
   template = '''def %s(self,*args,**kwargs): 
                    self.script.append((Canvas.%s,args,kwargs)); 

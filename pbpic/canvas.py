@@ -9,7 +9,7 @@ from render_bbox import BBoxRenderer
 import math
 import os
 import exception
-
+from style import style
 
 class MarkedPoints:
   def __init__(self):
@@ -79,9 +79,9 @@ class BBoxMarkedPoints(MarkedPoints):
     if not cb is None:
       if self._bbox is None:
         raise PBPicException('No bounding box available to computed named point %s' % markname) 
-
+      return self._transform(PagePoint(cb(self._bbox)))
     
-    return self._transform(PagePoint(cb(self._bbox)))
+    raise KeyError(markname)
 
   def copy(self):
     cp = BBoxMarkedPoints(None)
@@ -92,6 +92,7 @@ class BBoxMarkedPoints(MarkedPoints):
       cp._bbox =  self._bbox.copy()
     return cp
 
+
 class Canvas:
   def __init__(self, w=None, h=None, bbox=None):
     self.w=w
@@ -101,8 +102,9 @@ class Canvas:
     self.gstack = []
     self.renderer = None
     self.points = {}
-    
-    
+    self.lineStyleCmds = { 'width':self.setlinewidth, 'color':self.setlinecolor, 'cap':self.setlinecap, 
+                           'join':self.setlinejoin, 'miterlimit':self.setmiterlimit, 'dash':self.setdash }
+
   def begin(self,renderer=None,w=None,h=None,bbox=None):
     self.renderer=renderer
 
@@ -162,15 +164,50 @@ class Canvas:
 
   def setlinewidth(self,w):
     self.gstate.setlinewidth(w)
+  def linewidth(self):
+    return self.gstate.linewidth
+
+  def setlinecolor(self,c):
+    self.gstate.setlinecolor(c)
+  def linecolor(self):
+    return self.gstate.linecolor
+  
+  def setlinecap(self,cap):
+    self.gstate.setlinecap(cap)
+  def linecap(self):
+    return self.gstate.linecap
+    
+  def setlinejoin(self,join):
+    self.gstate.setlinejoin(join)
+  def linejoin(self):
+    return self.gstate.linejoin
+
+  def setmiterlimit(self,ml):
+    self.gstate.setmiterlimit(ml)
+  def miterlimit(self):
+    return self.gstate.miterlimit
+
+  def setdash(self,*args):
+    if len(args) == 2:
+      dash = args[0]; phase = args[1]
+    elif len(args) == 1:
+      dash = args[0][0]; phase = args[0][1]
+    else:
+      raise ValueError('setdash takes 1 or 2 arguments')
+    self.gstate.setdash((dash,phase))
+
+  def dash(self):
+    return ([d for d in self.gstate.dash[0] ], self.gstate.dash[1])
 
   def setcolor(self,c):
-    self.gstate.setcolor(c)
+    self.setlinecolor(c)
+    # self.setfillcolor(c)
 
   def setrgbcolor(self,r,g,b):
-    self.gstate.setcolor(RGBColor(r,g,b))
+    self.setcolor(RGBColor(r,g,b))
   
   def setgray(self,g):
-    self.gstate.setcolor(GrayColor(g))
+    self.setcolor(GrayColor(g))
 
   def currentpoint(self):
     cp = self.gstate.path.cp
@@ -180,6 +217,7 @@ class Canvas:
   def setphysicalfont(self,fontdescriptor):
     self.gstate.setphysicalfont(fontdescriptor)
 
+  # Fixme: this never uses self, so it doesn't belong here
   def findfont(self,name):
     # First check if this is the path to a font.
     if os.path.isfile(name):
@@ -187,7 +225,7 @@ class Canvas:
     # Otherwise see if the operating system knows a font by this name
     else:
       fd = sysfont.findfont(name)
-
+    
     if not fd is None:
       ftype = fd.fontType()
       if ftype == 'TrueType':
@@ -277,6 +315,19 @@ class Canvas:
     #     
 
 
+  def applystyle(self,s=None):
+    if s is None:
+      s = style()
+    try:
+      linestyle = s['line']
+      for (key,value) in linestyle.sdict.items():
+        linecmd = self.lineStyleCmds.get(key)
+        # FIXME: Warn if there is a meaningless line style?
+        if not linecmd is None:
+          linecmd(value)
+    except exception.StylePropertyNotFound:
+      pass
+
   def addpath(self,p):
     p.drawto(self)
     
@@ -359,7 +410,6 @@ class Canvas:
         self.markedpoints._addpoint(name,mp)
 
   def gsave(self):
-    # self.gstate.copy()
     self.gstack.append(self.gstate.copy())
 
     return GRestorer(self)

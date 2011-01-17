@@ -4,6 +4,9 @@ class GrayColor:
     
   def renderto(self,r):
     r.setgray(self.g)
+
+  def __repr__(self):
+    return 'GrayColor(%g)' % self.g
     
 class RGBColor:
   def __init__(self,r,g,b):
@@ -13,6 +16,9 @@ class RGBColor:
   
   def renderto(self,r):
     r.setrgbcolor(self.r,self.g,self.b)
+
+  def __repr__(self):
+    return 'RGBColor(%g,%g,%g)' % (self.r,self.g,self.b)
 
 red = RGBColor(1,0,0)
 green = RGBColor(0,1,0)

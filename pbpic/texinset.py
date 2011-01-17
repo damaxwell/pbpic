@@ -4,6 +4,7 @@ import tex.dvi
 import inset
 from tex.devicefont import FontTable
 from geometry import BBox
+from style import Style, style
 
 class FileSweeper:
   def __init__(self,paths):
@@ -25,22 +26,20 @@ class FileSweeper:
       except:
         pass
 
+_defaultTexStyle = Style(tex=Style(command=r'latex -interaction=nonstopmode',
+                                   preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
+                                   postamble = r'\end{document}' ) )
 class TexProcessor:
-  
-  standard_LaTeX_command = r'latex -interaction=nonstopmode'
-  standard_LaTeX_preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\usepackage[lf]{MinionPro}\begin{document}'
-  standard_LaTeX_postamble = r'\end{document}'
 
-  def __init__(self,command,preamble,postamble):
-    self.command = command
-    self.preamble = preamble
-    self.postamble = postamble
+  def __init__(self):
     self._dvi = None
     self.errmsg = None
     
   def run(self,text,texFileName=None):
-    print'texstrat'
-    body = self.preamble+text+self.postamble
+    print'texstart'
+    global _defaultTexStyle
+    body = style('tex.preamble',_defaultTexStyle) + text + style('tex.postamble',_defaultTexStyle)
+
     if texFileName is None:
       texFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))
 
@@ -49,7 +48,7 @@ class TexProcessor:
     with FileSweeper([ basename+ext for ext in ['.aux','.log','.tex','.dvi']]):
       with open(basename+'.tex','wb') as f:
         f.write(body)
-      command = self.command + (' %s' % texFileName)
+      command = style('tex.command',_defaultTexStyle) + (' %s' % texFileName)
       p = Popen(command,stderr=PIPE,stdout=PIPE,shell=True)
       (stdout,stderr) = p.communicate()
       if p.returncode == 0:
@@ -70,10 +69,10 @@ class TexProcessor:
     return self._dvi
 
 def texinset(text):
-  p=TexProcessor(TexProcessor.standard_LaTeX_command,TexProcessor.standard_LaTeX_preamble,TexProcessor.standard_LaTeX_postamble)
+  p = TexProcessor()
   p.run(text)
   dvi = p.dvi()
-  
+
   f = cStringIO.StringIO(dvi)
   dvireader=DviToInset(f)
   dvireader.run()
@@ -123,6 +122,7 @@ class DviToInset(tex.dvi.DviReader):
 
   def bop(self):
     self.canvas = inset.Inset()
+    self.canvas.begin()
 
   def eop(self):
     self.canvas.setextents(self.bbox)

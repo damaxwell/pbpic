@@ -8,3 +8,8 @@ class FontNotFound(PBPicException):
 class FontUnrecognized(PBPicException):
   def __init__(self,fd):
     PBPicException.__init__(self,'Font %s not in a known format.' % fd)
+
+class StylePropertyNotFound(PBPicException):
+  def __init__(self,styleName):
+    PBPicException.__init__(self,'Style %s not found' % styleName)
+    

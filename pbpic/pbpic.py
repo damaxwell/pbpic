@@ -8,17 +8,19 @@ from metric import pt, cm, inch, Polar, FPolar, DPolar, Vector
 from color import RGBColor, GrayColor
 import color
 from inset import Inset
+from style import Style, style, setstyle, stylesave, stylerestore
 import texinset
 
 _canvas = None
 
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
-functions = [ 'setlinewidth', 'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
+functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
+              'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
               'lineto', 'moveto', 'polygon', 'closepath', 'stroke', 
               'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
-              'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks' ]
+              'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks', 'applystyle' ]
 for f in functions:
   filled_template = template % (f,f)
   exec filled_template in globals()
@@ -38,7 +40,7 @@ def begin(w=None,h=None,target=None):
     logging.warning('Overwriting current canvas with a begin(). Did you forget to finish()?')
 
   if target is None:
-    _canvas = inset.Inset(w,h)
+    _canvas = Inset(w,h)
     return
 
   renderer = None
@@ -66,8 +68,13 @@ def begin(w=None,h=None,target=None):
     # Assume we have a renderer
     renderer = target
 
+
   _canvas=canvas.Canvas(w,h)
   _canvas.begin(renderer)
+  
+  # If default styles have been set, we apply them at the start of the page.  Maybe this is a bad idea.
+  applystyle()
+
 
 def end():
   global _canvas
@@ -79,6 +86,7 @@ def inset():
   return InsetGuard()
 
 _canvasstack = []
+_canvas = None
 def pushcanvas(c):
   global _canvas, _canvasstack
   _canvasstack.append(_canvas)

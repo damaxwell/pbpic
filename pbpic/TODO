@@ -1,5 +1,12 @@
+INITIALIZE GSTATE in the renderer!!!!!
+
+dashes in proper coordinates (i.e. lengths?).
+
 How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
 
+cache DVIs
+
+TrueType collections
 
 
 Vertical metrics for true type fonts

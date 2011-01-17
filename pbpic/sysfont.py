@@ -5,14 +5,16 @@ try:
   import sysfont_mac
   sysfont_platform = sysfont_mac
 except:
+  class sysfont_none:
+    @staticmethod
+    def find_font(fontname): return None
   sysfont_platform = sysfont_none
 import pbpfont
 
 def findfont(name):
-  # Let's see if the operating system knows a font by this name.
   fd = sysfont_platform.find_font(name)
-  if not fd is None:
-    return pbpfont.FontDescriptor(fd[0],0)
+  if fd is None: return None
+  return pbpfont.FontDescriptor(fd[0],0)
 
 if __name__ == '__main__':
   import sys

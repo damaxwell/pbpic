@@ -4,25 +4,40 @@ from metric import Point,pt,MeasuredLength
 from color import GrayColor
 import copy
 
+nodash = ([],0)
+
 class GState:
   def __init__(self,init=True):
     if init: self.init()
 
   def init(self):
-    self.color = GrayColor(0)
+    self.color = GrayColor(1)
     self.path = Path()
+
     self.linewidth = 1*pt
+    self.linecolor = GrayColor(1)
+    self.linecap='square'
+    self.linejoin='butt'
+    self.miterlimit=1
+    self.dash = nodash
+
 
     self.fontdescriptor = None
     self.font = None
     self.fontsize = 12
-  
+
     self.ctm=AffineTransform()
     self.pendingdict = {}
+    self.useddict = {}
 
   def copystyle(self,other):
     other.setcolor(self.color)
     other.setlinewidth(self.linewidth)
+    other.setlinecolor(self.linecolor)
+    other.setlinecap(self.linecap)
+    other.setlinejoin(self.linejoin)
+    other.setmiterlimit(self.miterlimit)
+    other.setdash(self.dash)
     other.setphysicalfont(self.fontdescriptor)
     other.setfont(self.font)
     other.setfontsize(self.fontsize)
@@ -33,6 +48,7 @@ class GState:
     copy.path=self.path.copy()
     copy.ctm=self.ctm.copy()
     copy.pendingdict = self.pendingdict.copy()
+    copy.useddict = self.useddict.copy()
     return copy
     
   def texttm(self):
@@ -44,10 +60,34 @@ class GState:
     return ttm
 
   def setlinewidth(self,w):
-    if self.linewidth == w:
-      return
+    if self.linewidth == w: return
     self.linewidth=w
     self.setpending('linewidth')
+
+  def setlinecolor(self,c):
+    if self.linecolor == c: return
+    self.linecolor=c
+    self.setpending('linecolor')
+
+  def setlinecap(self,cap):
+    if self.linecap == cap: return
+    self.linecap=cap
+    self.setpending('linecap')
+
+  def setlinejoin(self,join):
+    if self.linejoin == join: return
+    self.linejoin = join
+    self.setpending('linejoin')
+
+  def setmiterlimit(self,ml):
+    if self.miterlimit == ml: return
+    self.miterlimit = ml
+    self.setpending('miterlimit')
+
+  def setdash(self,d):
+    if self.dash == d: return
+    self.dash = ([p for p in d[0]],d[1])
+    self.setpending('dash')
 
   def setcolor(self,c):
     if self.color == c:
@@ -76,9 +116,17 @@ class GState:
 
   def setpending(self, name):
     if isinstance(name,GState):
-      self.pendingdict.update(name.pendingdict)
+      self.pendingdict.update(name.useddict)
+      self.useddict.update(name.useddict)
     else:
       self.pendingdict[name] = True
+      self.useddict[name] = True
+
+  def setused(self,name):
+    if isinstance(name,GState):
+      self.useddict.update(name.useddict)
+    else:
+      self.useddict[name] = True
 
   def checkpending(self,name):
     if self.pendingdict.has_key(name):
@@ -86,12 +134,20 @@ class GState:
       return True
     return False
 
-  def updatepathstate(self,renderer):
+  def updatestrokestate(self,renderer):
     if self.checkpending('linewidth'):
       renderer.setlinewidth(self.linewidth)
-    if self.checkpending('color'):
-      self.color.renderto(renderer)
-  
+    if self.checkpending('linecolor'):
+      renderer.setlinecolor(self.linecolor)
+    if self.checkpending('linecap'):
+      renderer.setlinecap(self.linecap)
+    if self.checkpending('linejoin'):
+      renderer.setlinejoin(self.linejoin)
+    if self.checkpending('miterlimit'):
+      renderer.setmiterlimit(self.miterlimit)
+    if self.checkpending('dash'):
+      renderer.setdash(*self.dash)
+
   def updatetextstate(self,renderer):
     if self.checkpending('color'):
       self.color.renderto(renderer)
