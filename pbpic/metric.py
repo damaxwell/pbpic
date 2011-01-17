@@ -72,7 +72,7 @@ class Point:
     self.y=y
 
   def __add__(self,l):
-    return Point(self.x+l.x,self.y+l.y)
+    return Point(self.x+l[0],self.y+l[1])
   
   def __repr__(self):
     return 'Point (%g,%g)' % (self.x,self.y)

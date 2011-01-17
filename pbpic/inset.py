@@ -33,8 +33,12 @@ class Inset(Canvas):
     return s
     
   def setextents(self,bbox):
-    self.extents=bbox.copy()
-
+    if bbox is None:
+      self.extents is None
+    else:
+      self.extents=bbox.copy()
+    self.markedpoints.setbbox(self.extents)
+    
   def markedbox(self):
     c = Canvas()
     r=BBoxRenderer()

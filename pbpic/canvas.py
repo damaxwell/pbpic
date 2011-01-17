@@ -11,6 +11,87 @@ import os
 import exception
 
 
+class MarkedPoints:
+  def __init__(self):
+    self.points = {}
+    self.ctm = None
+  
+  def __getitem__(self,markname):
+    p = self.getpoint(markname)
+    if p is None:
+      raise KeyError(markname)
+    return p
+    
+  def __getattr__(self,markname):
+    p = self.getpoint(markname)
+    if p is None:
+      raise AttributeError()
+    return p
+  
+  def getpoint(self,markname):
+    p = self.points.get(markname)
+    return self._transform(p)
+
+  def _transform(self,p):
+    if isinstance(p,PagePoint) and (not self.ctm is None):
+      return PagePoint(self.ctm.T(p))
+    return p
+    
+  def _addpoint(self,markname,p):
+    #FIXME: Should we  check that we are only adding a PagePoint or a MarkedPoints?
+    self.points[markname] = p
+
+  def copy(self):
+    cp = MarkedPoints()
+    cp.points = self.points.copy()
+    if not self.ctm is None:
+      cp.ctm = self.ctm.copy()
+    return cp
+
+  def append(self,ctm):
+    if self.ctm is None:
+      self.ctm = ctm.copy()
+    else:
+      self.ctm.append(ctm)
+    for p in self.points.values():
+      if isinstance(p,MarkedPoints):
+        p.append(ctm)
+
+
+
+class BBoxMarkedPoints(MarkedPoints):
+  def __init__(self,bbox):
+    MarkedPoints.__init__(self)
+    self._bbox = bbox
+    self.bboxcallbacks = { 'll':BBox.ll, 'lr':BBox.lr, 'ul':BBox.ul, 'ur':BBox.ur, 'center':BBox.center}
+
+  def setbbox(self,bbox):
+    self._bbox = bbox
+  
+  def getpoint(self,markname):
+    # First look up a point with that name
+    p = MarkedPoints.getpoint(self,markname)
+    if not p is None:
+      return p
+
+    # Now try special points
+    cb = self.bboxcallbacks.get(markname)
+    if not cb is None:
+      if self._bbox is None:
+        raise PBPicException('No bounding box available to computed named point %s' % markname) 
+
+    
+    return self._transform(PagePoint(cb(self._bbox)))
+
+  def copy(self):
+    cp = BBoxMarkedPoints(None)
+    cp.points = self.points.copy()
+    if not self.ctm is None:
+      cp.ctm = self.ctm.copy()
+    if not self._bbox is None:
+      cp._bbox =  self._bbox.copy()
+    return cp
+
 class Canvas:
   def __init__(self, w=None, h=None, bbox=None):
     self.w=w
@@ -34,6 +115,8 @@ class Canvas:
       # Maybe we specified the extents via w/h earlier
       if (not self.w is None) and (not self.h is None):
         self.extents = BBox(0,0,self.w.ptValue(),self.h.ptValue())
+        
+    self.markedpoints = BBoxMarkedPoints(self.extents)
 
     if self.renderer: self.renderer.begin(self.extents)
 
@@ -55,34 +138,24 @@ class Canvas:
     return self.gstate.ctm.T(x,y)
 
   def pagemark(self,name):
-    # Look first for a named point
-    p = self.points.get(name,None)
-    if not p is None:
-      return p
-    
-    # Otherwise, it should be one of the following:
-    dp = None
-    if name == 'll':
-      dp = self.extents.ll()
-    elif name == 'lr':
-      dp = self.extents.lr()
-    elif name == 'ul':
-      dp = self.extents.ul()
-    elif name == 'ur':
-      dp = self.extents.ur()
-    elif name == 'center':
-      dp = self.extents.center()
-    if dp is None:
-      raise KeyError(name)
-    return PagePoint(dp)
+    return self.markedpoints[name]
       
   def mark(self,name=None,point=None,):
     if point is None:
       point = self.currentpoint()
-    point = PagePoint(self.T(point))
+    if not isinstance(point,PagePoint):
+      point = PagePoint(self.T(point))
     if not name is None:
       self.points[name] = point
     return point
+
+  def marks(self):
+    return self.markedpoints
+
+  def local(self,p):
+    if isinstance(p,PagePoint):
+      return self.Tinv(p)
+    return p
 
   def ctm(self):
     return self.gstate.ctm.copy()
@@ -237,14 +310,10 @@ class Canvas:
       p = args[0]
       if isinstance(p,str):
         q = self.pagemark(p)
-        print 'pagemark', q
         p = self.Tinv(q)
-        print self.gstate.ctm
-        print p
       elif isinstance(p,PagePoint):
         p = self.Tinv(p)
       x=p[0]; y=p[1]
-    print 'translate %g %g' % (x,y)
     self.gstate.ctm.translate(x,y)
 
   def rotate(self,theta):
@@ -265,11 +334,10 @@ class Canvas:
   def Tinv(self,q):
     return self.gstate.ctm.Tinv(q)
 
-  def place(self,i,at=None,origin=None):
+  def place(self,i,at=None,origin=None,name=None):
     # If we have a named point, use it.  This will raise an exception if the point doesn't exist.
     if isinstance(origin,str):
       origin = i.pagemark(origin)
-      print origin
     # Otherwise, try looking for a point named 'origin'. It's ok if there isn't one.
     elif origin is None:
       try:
@@ -281,18 +349,19 @@ class Canvas:
       if not at is None:
         self.translate(at)
       self.gstate.ctm.makeortho()
-      print self.gstate.ctm
       if not origin is None:
-        print origin
         self.translate(-(origin[0]),-(origin[1]))
       i.drawto(self)
+      
+      if not name is None:
+        mp = i.markedpoints.copy()
+        mp.append(self.ctm())
+        self.markedpoints._addpoint(name,mp)
 
   def gsave(self):
     # self.gstate.copy()
     self.gstack.append(self.gstate.copy())
 
-    print self.gstate.path
-    print 'gsave', self.gstack[-1].path
     return GRestorer(self)
   
   def grestore(self):

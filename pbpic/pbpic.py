@@ -18,7 +18,7 @@ functions = [ 'setlinewidth', 'setcolor', 'setrgbcolor', 'setgray', 'path', 'new
               'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
-              'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'placetex' ]
+              'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks' ]
 for f in functions:
   filled_template = template % (f,f)
   exec filled_template in globals()
