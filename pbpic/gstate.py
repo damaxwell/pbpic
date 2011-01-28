@@ -21,6 +21,8 @@ class GState:
     self.miterlimit=1
     self.dash = nodash
 
+    self.fillcolor = GrayColor(1)
+    self.fillrule = 'evenodd'
 
     self.fontdescriptor = None
     self.font = None
@@ -38,6 +40,8 @@ class GState:
     other.setlinejoin(self.linejoin)
     other.setmiterlimit(self.miterlimit)
     other.setdash(self.dash)
+    other.setfillcolor(self.fillcolor)
+    other.setfillrule(self.fillrule)
     other.setphysicalfont(self.fontdescriptor)
     other.setfont(self.font)
     other.setfontsize(self.fontsize)
@@ -89,12 +93,16 @@ class GState:
     self.dash = ([p for p in d[0]],d[1])
     self.setpending('dash')
 
-  def setcolor(self,c):
-    if self.color == c:
-      return
-    self.color=c
-    self.setpending('color')
+  def setfillcolor(self,c):
+    if self.fillcolor == c: return
+    self.fillcolor=c
+    self.setpending('fillcolor')
 
+  def setfillrule(self,r):
+    if self.fillrule == r: return
+    self.fillrule=r
+    self.setpending('fillrule')
+    
   def setphysicalfont(self,fontdescriptor):
     if self.fontdescriptor == fontdescriptor:
       return
@@ -148,6 +156,12 @@ class GState:
     if self.checkpending('dash'):
       renderer.setdash(*self.dash)
 
+  def updatefillstate(self,renderer):
+    if self.checkpending('fillcolor'):
+      renderer.setfillcolor(self.fillcolor)
+    if self.checkpending('fillrule'):
+      renderer.setfillrule(self.fillrule)
+      
   def updatetextstate(self,renderer):
     if self.checkpending('color'):
       self.color.renderto(renderer)

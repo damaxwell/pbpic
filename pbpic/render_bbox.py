@@ -1,6 +1,6 @@
 import cairo
 from geometry import BBox, Path, AffineTransform
-import pbpfont
+import sysfont
 import math
 
 
@@ -35,8 +35,11 @@ class BBoxRenderer:
     # pathbox.thicken(gstate.linewidth.ptValue()/2)
     # self._bbox.join(pathbox)
 
+  def fill(self,path,gstate):
+    self.stroke(path,gstate)
+
   def showglyphs(self,s,gstate,metrics):
-    font = pbpfont.findfont(gstate.fontdescriptor)
+    font = sysfont.findcachedfont(gstate.fontdescriptor)
 
     ttm = gstate.texttm()
     ctm = self.ctm

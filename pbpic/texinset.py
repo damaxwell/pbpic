@@ -4,7 +4,10 @@ import tex.dvi
 import inset
 from tex.devicefont import FontTable
 from geometry import BBox
-from style import Style, style
+from style import Style, style, updatefromstyle
+from metric import pt
+import userprefs
+import hashlib
 
 class FileSweeper:
   def __init__(self,paths):
@@ -26,19 +29,76 @@ class FileSweeper:
       except:
         pass
 
-_defaultTexStyle = Style(tex=Style(command=r'latex -interaction=nonstopmode',
-                                   preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
-                                   postamble = r'\end{document}' ) )
-class TexProcessor:
+
+class _DviCache:
+  
+  @staticmethod
+  def cachedir():
+    return '.pbpdata'
 
   def __init__(self):
+    self.clear()
+
+  def clear(self):
+    self.dviCache={}
+
+  @staticmethod
+  def hashKey(command,texsource):
+    m = hashlib.md5();
+    m.update(command)
+    m.update(texsource)
+    return m.digest()
+    
+  def load(self,command,texsource):
+    dvi = None
+    cacheFile = self.dviCache.get(self.hashKey(command,texsource),None)
+    if not cacheFile is None:
+      try: 
+        with open(cacheFile,'rb') as f:
+          dvi = f.read()
+      except:
+        pass
+    return dvi
+
+  def save(self,command,texsource,dvi):
+    dviFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))+'.dvi'
+    cacheFile = os.path.join(self.cachedir(),dviFileName)
+    try:
+      with open(cacheFile,'wb') as f:
+        f.write(dvi)
+      self.dviCache[self.hashKey(command,texsource)] = cacheFile
+    except:
+      pass
+
+class DviCache(userprefs.PersistantCache):
+
+  def __init__(self):
+    userprefs.PersistantCache.__init__(self,_DviCache,'dvi.cache',cachedir=_DviCache.cachedir() )
+
+
+dviCache = DviCache()
+
+
+
+class TexProcessor:
+
+  @staticmethod
+  def defaultStyle():
+    return Style(tex=Style(command=r'latex -interaction=nonstopmode',
+                                       preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
+                                       postamble = r'\end{document}' ) )    
+
+  def __init__(self,**kwargs):
+    updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
     self._dvi = None
     self.errmsg = None
     
   def run(self,text,texFileName=None):
-    print'texstart'
-    global _defaultTexStyle
-    body = style('tex.preamble',_defaultTexStyle) + text + style('tex.postamble',_defaultTexStyle)
+    body = self.preamble + text + self.postamble
+
+    self._dvi = dviCache().load(self.command,body)
+    if not self._dvi is None:
+      return
 
     if texFileName is None:
       texFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))
@@ -48,13 +108,15 @@ class TexProcessor:
     with FileSweeper([ basename+ext for ext in ['.aux','.log','.tex','.dvi']]):
       with open(basename+'.tex','wb') as f:
         f.write(body)
-      command = style('tex.command',_defaultTexStyle) + (' %s' % texFileName)
+      command = '%s %s' % (self.command,texFileName)
+      print 'Running tex!'
       p = Popen(command,stderr=PIPE,stdout=PIPE,shell=True)
       (stdout,stderr) = p.communicate()
       if p.returncode == 0:
         with open(basename+'.dvi') as f:
           self._dvi = f.read()
           self._errmsg = None
+          dviCache().save(self.command,body,self._dvi)
       else:
         self._dvi = None
         m=re.search("[\n\r]+(! [^\n\r]+[\n\r]+.*)",stdout,re.DOTALL)
@@ -63,7 +125,6 @@ class TexProcessor:
         else:
           self._errmsg = m.group(0)
         raise Exception(self._errmsg)
-    print'texend'
 
   def dvi(self):
     return self._dvi
@@ -76,7 +137,8 @@ def texinset(text):
   f = cStringIO.StringIO(dvi)
   dvireader=DviToInset(f)
   dvireader.run()
-  return dvireader.pages[0]
+  c = dvireader.pages[0]
+  return c
 
 class DviToInset(tex.dvi.DviReader):
   def __init__(self,f):
@@ -91,9 +153,9 @@ class DviToInset(tex.dvi.DviReader):
     x = self.toPSScale*self.h
     y = self.toPSScale*self.v
     f = self.currentfont
-    w=self.toPSScale*f.s*f.metrics.w[c]
-    h=self.toPSScale*f.s*f.metrics.h[c]
-    d=self.toPSScale*f.s*f.metrics.d[c]
+    w=self.toPSScale*f.s*f.metrics.w[c]*self.scale
+    h=self.toPSScale*f.s*f.metrics.h[c]*self.scale
+    d=self.toPSScale*f.s*f.metrics.d[c]*self.scale
     self.bbox.include(x,-y-d)
     self.bbox.include(x+w,-y+h)
 

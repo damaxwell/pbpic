@@ -254,8 +254,8 @@ class SetRule(DviCmd):
     self.a=common.readInt4(f)
     self.b=common.readInt4(f)
   def execute(self,r):
-    r.putrule(r.scale*a,r.scale*b)
-    r.h = r.h + r.scale*a
+    r.putrule(r.scale*self.a,r.scale*self.b)
+    r.h = r.h + r.scale*self.a
     r.setStateFromInput()
 
 class Put(Set):

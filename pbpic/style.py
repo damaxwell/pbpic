@@ -129,6 +129,29 @@ def setstyle(*args):
     value=args[0]
     _stylestack[-1].update(value)
 
+def updatefromstyle(obj,vars,styleprefix,ldict):
+  topstyle = style()
+  defaultStyle = None
+  for v in vars:
+    # Lookup the style variable in the given dictionary
+    if ldict.has_key(v):
+      obj.__dict__[v]=ldict[v]
+    else:
+      # Append the prefix (if given) to the style variable
+      if (not styleprefix is None) and (len(styleprefix) > 0):
+        sv = styleprefix + '.' + v
+      else:
+        sv = v
+      # Lookup the style variable in the global style
+      try:
+        obj.__dict__[v] = topstyle[sv]
+      except:
+        # That failed, so the style hasn't been specified.  Look it up in the object's default style dictionary.
+        if defaultStyle is None:
+          defaultStyle = obj.defaultStyle()
+        obj.__dict__[v] = defaultStyle[sv]
+
+
 def stylesave():
   global _stylestack
   _stylestack.append(_stylestack[-1].copy())

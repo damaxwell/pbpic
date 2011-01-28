@@ -23,4 +23,7 @@ class RGBColor:
 red = RGBColor(1,0,0)
 green = RGBColor(0,1,0)
 blue = RGBColor(0,0,1)
+cyan = RGBColor(0,1,1)
+magenta = RGBColor(1,0,1)
+yellow = RGBColor(1,1,0)
 black = GrayColor(1)

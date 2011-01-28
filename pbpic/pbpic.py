@@ -4,7 +4,7 @@ import canvas
 import inspect
 import os
 import logging
-from metric import pt, cm, inch, Polar, FPolar, DPolar, Vector
+from metric import pt, cm, inch, Polar, FPolar, DPolar, Point, Vector
 from color import RGBColor, GrayColor
 import color
 from inset import Inset
@@ -12,15 +12,17 @@ from style import Style, style, setstyle, stylesave, stylerestore
 import texinset
 
 _canvas = None
+_finalcanvas = None
 
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
 functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
+              'setfillcolor', 'setfillrule',
               'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
-              'lineto', 'moveto', 'polygon', 'closepath', 'stroke', 
-              'kstroke', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphyscialfont', 
+              'lineto', 'moveto', 'rmoveto', 'rlineto', 'curveto', 'polygon', 'closepath', 'stroke', 'kstroke', 
+              'fill', 'kfill', 'scaleto', 'scale', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
-              'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks', 'applystyle' ]
+              'draw', 'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks', 'applystyle', 'currentpoint', 'extents' ]
 for f in functions:
   filled_template = template % (f,f)
   exec filled_template in globals()
@@ -32,16 +34,12 @@ def getcanvas():
   return _canvas
 
   
-def begin(w=None,h=None,target=None):
-  global _canvas
+def pbpbegin(w=None,h=None,target=None,bbox=None):
+  global _canvas,_finalcanvas
   global _rendertypes
 
   if not(_canvas is None):
-    logging.warning('Overwriting current canvas with a begin(). Did you forget to finish()?')
-
-  if target is None:
-    _canvas = Inset(w,h)
-    return
+    logging.warning('Overwriting current canvas with a pbpbegin(). Did you forget to pbpend()?')
 
   renderer = None
   if isinstance(target,str):
@@ -63,24 +61,53 @@ def begin(w=None,h=None,target=None):
     else:
       command = 'import %s;renderer=%s.%s("%s")' % (rendertype[0],rendertype[0],rendertype[1],filename)      
       exec command
-# render_pdf.PDFRenderer(filename)      BUILD ONE
   else:
     # Assume we have a renderer
     renderer = target
 
+  print 'begin',w,h,bbox,renderer
+  if renderer is None:
+    _canvas = Inset(w,h,bbox)
+  elif (w is None) and (h is None) and (bbox is None):
+    _canvas = Inset()
+    _finalcanvas=canvas.Canvas(renderer=renderer)
+  else:
+    _canvas=canvas.Canvas(w=w,h=h,bbox=bbox,renderer=renderer)
 
-  _canvas=canvas.Canvas(w,h)
-  _canvas.begin(renderer)
+  print 'fc',_finalcanvas
+  _canvas.begin()
   
   # If default styles have been set, we apply them at the start of the page.  Maybe this is a bad idea.
   applystyle()
+  print 'fc',_finalcanvas
 
 
-def end():
-  global _canvas
+
+def pbpend():
+  global _canvas, _finalcanvas
+  
+  # FIXME: check that we have popped everything off of the canvas stack?
   _canvas.end()
-  _canvas=None
 
+  print 'end',_finalcanvas
+  rv = _canvas
+  if not _finalcanvas is None:
+    # The top canvas should be an inset.  Determine its bounding box, set the boundingbox of the cavnas, and do a simple draw.
+    bbox = _canvas._extents
+    if bbox is None:
+      bbox=_canvas.markedbox()
+    print 'setting bbox', bbox
+    _finalcanvas.begin(bbox=bbox)
+    _finalcanvas.draw(_canvas)
+    _finalcanvas.end()
+    rv = _finalcanvas
+    
+  _canvas=None
+  _finalcanvas=None
+  return rv
+
+begin=pbpbegin
+end=pbpend
 
 def inset():
   return InsetGuard()

@@ -204,6 +204,94 @@ class Record:
     self.__dict__.update(kw);
 
 
+class TrueTypeCollection:
+  
+  def __init__(self,f):
+    self.f = f
+    header=ttReader(f.read(12))
+    tag = header.getString(4)
+    version = header.getUInt32()
+    self.nFonts = header.getUInt32()
+    oreader = ttReader(f.read(4*self.nFonts))
+    self.offsets = [ oreader.getUInt32() for k in xrange(self.nFonts) ]
+
+    directories = []
+    for o in self.offsets:
+      f.seek(o)
+      directories.append(tt_directory(f))
+    self.directories = directories
+    
+    self._psNames = None
+
+  def psNames(self):
+    if not self._psNames is None:
+      return self._psNames
+      
+    names = self.nFonts * [ None ]
+    for k in xrange(len(self.directories)):
+      d = self.directories[k]
+      name_t = d.getTable( 'name', self.f)
+      if name_t == None:
+        logging.warning("Using a TrueType font without a name table")
+        continue
+      name = tt_name(name_t)
+      names[k] = name.nameForId( NAME_ID_PS_NAME )
+    self._psNames = names
+    return names
+
+  def offsetForFontIndex(self,index):
+    return self.offsets[index]
+
+  def offsetForPSName(self,psname):
+    i = self.indexForPSName(psname)
+    if i < 0:
+      return -1    
+    return self.offsets[i]
+
+  def indexForPSName(self,psname):
+    psNames = self.psNames()
+    for k in xrange(len(psNames)):
+      if psname == psNames[k]:
+        return k
+    return -1
+
+class tt_directory:
+  def __init__(self, f):
+    header = ttReader( f.read(12) )
+    self.type = header.getUInt32();
+    TRUETYPE_TYPE = 0x00010000
+    WIN_TRUETYPE_TYPE = 0x74727565 # 'true'
+    TTC_TYPE = 0x74746366
+    if self.type != TRUETYPE_TYPE and self.type != WIN_TRUETYPE_TYPE and self.type != TTC_TYPE:
+      raise TTMalformedException( "Unknown truetype font type %4x (expected %4x, %4x, or %4x)" % (self.type, TRUETYPE_TYPE, WIN_TRUETYPE_TYPE, TTC_TYPE) )
+    self.numTables = header.getUInt16()
+    self.tableDirectory = f.read(16*self.numTables)
+
+  def findTable( self, tag ):
+    d = ttReader( self.tableDirectory )
+    for k in xrange( self.numTables ):
+      this_tag = d.getTag()
+      if( this_tag == tag ):
+        checksum = d.getUInt32();
+        offset = d.getUInt32();
+        length = d.getUInt32();
+        return( offset, length, checksum );
+      d.skip( 12 );
+    return ( 0 , 0, 0)
+
+  def getTable(self,tag,f):
+    (tOffset,tLength, checksum) = self.findTable( tag )
+    if tOffset != 0:
+      f.seek( tOffset )
+      return ttReader( f.read( tLength) )
+
+  def printTables(self):
+    d = ttReader( self.tableDirectory )
+    for k in xrange( self.numTables ):
+      print d.getTag()
+      d.skip( 12 );
+    
+
 class TrueTypeFont:
   def fromPath( p ):
     f = file( p, 'rb' )
@@ -214,20 +302,15 @@ class TrueTypeFont:
     return TrueTypeFont( StringIO.StringIO( d ) )
   fromData = staticmethod( fromData )
 
-  def __init__( self, f ):
+  def __init__( self, f, offsetTableStart=0 ):
     """Initialize font from a seekable stream. (e.g. a file or memory stream).  We take ownership
     of the stream.  Use factory methods fromPath and fromData for convenience."""
     self.f = f;
-    header = ttReader( f.read(12) )
-    self.type = header.getUInt32();
-    TRUETYPE_TYPE = 0x00010000
-    WIN_TRUETYPE_TYPE = 0x74727565 # 'true'
-    if self.type != TRUETYPE_TYPE and self.type != WIN_TRUETYPE_TYPE:
-      header.seek(0)
-#     raise TTMalformedException( "Unknown truetype font type %4x (expected %4x or %4x)" % (self.type, TRUETYPE_TYPE, WIN_TRUETYPE_TYPE) )
-    self.numTables = header.getUInt16()
-    self.tableDirectory = f.read(16*self.numTables)
-
+    self.offsetTableStart = offsetTableStart
+    f.seek(self.offsetTableStart)
+    
+    self.directory = tt_directory(f)
+    
     self.metrics = {}
     self.paths={}
 
@@ -382,16 +465,7 @@ class TrueTypeFont:
       print("Table %d %s offset %d length %d" %( k, this_tag, offset, length) )
     
   def findTable( self, tag ):
-    d = ttReader( self.tableDirectory )
-    for k in xrange( self.numTables ):
-      this_tag = d.getTag()
-      if( this_tag == tag ):
-        checksum = d.getUInt32();
-        offset = d.getUInt32();
-        length = d.getUInt32();
-        return( offset, length, checksum );
-      d.skip( 12 );
-    return ( 0 , 0, 0)
+    return self.directory.findTable(tag)
 
   def metricsForGlyph( self, glyph ):
     m = self.metrics.get(glyph,None)

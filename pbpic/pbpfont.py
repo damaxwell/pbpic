@@ -1,12 +1,15 @@
-from truetype import TrueTypeFont
+from truetype import TrueTypeFont, TrueTypeCollection
 from type1 import Type1Font
 
 from metric import Vector
 
+
+
 class FontDescriptor:
-  def __init__(self,path,faceindex=0):
+  def __init__(self,path,faceindex=0,fontType=None):
     self._path = path
     self._faceindex=faceindex
+    self.type = fontType
 
   @property
   def path(self):
@@ -28,48 +31,14 @@ class FontDescriptor:
   def __hash__(self):
     return hash(self.path) ^ hash(self.faceindex)
 
-  def fontType(self):
-    if self.path.lower().endswith('.ttf'):
-      return 'TrueType'
-    elif self.path.lower().endswith('.pfb'):
-      return 'Type1'
-
-    # FIXME: Try harder. Look at headers.
-    return None
-
-  def load(self):
-    ftype = self.fontType()
-
-    if ftype == 'TrueType':
-      return TrueTypeFont.fromPath(self.path)
-    elif ftype == 'Type1':
-      return Type1Font.fromPath(self.path)
-      
-    raise Exception('Unknown font type for file %s',self.path)
 
 
-class PhysicalFontCache:
-  def __init__(self):
-    self.cache={}
-
-  def findfont(self,fontdescriptor):
-    font = self.cache.get(fontdescriptor,None)
-    if font is None:
-      font = fontdescriptor.load()
-      self.cache[fontdescriptor] = font
-    return font
-
-_globalFontCache = PhysicalFontCache()
-def findfont(fontdescriptor):
-  return _globalFontCache.findfont(fontdescriptor)
 
 class Font:
-  def __init__(self,descriptor):
-    self._descriptor = descriptor
 
-  @property
-  def descriptor(self):
-    return self._descriptor
+  # @property
+  # def descriptor(self):
+  #   return self._descriptor
 
   def showto(self,canvas,s):
     raise NotImplementedError()
@@ -79,9 +48,9 @@ class Font:
     raise NotImplementedError()
 
 class UnicodeTrueTypeFont(Font):
-  def __init__(self,descriptor):
-    Font.__init__(self,descriptor)
-    self.ttf = findfont(descriptor)
+  def __init__(self,descriptor,ttfont):
+    self._descriptor=descriptor
+    self.ttf = ttfont
     self.cmap=self.ttf.cmapForUnicode()
 
   def showto(self,canvas,s):
@@ -98,13 +67,16 @@ class UnicodeTrueTypeFont(Font):
     return w
 
 class EncodedType1Font(Font):
-  def __init__(self,descriptor,encoding=None):
-    Font.__init__(self,descriptor)
-    self.t1font = findfont(descriptor)
+  def __init__(self,descriptor,t1font,encoding=None):
+    self._descriptor=descriptor
+    self.t1font = t1font
     if encoding is None:
       self.ev = self.t1font.encoding()
     else:
       self.ev = encoding
+
+  def __repr__(self):
+    return "EncodedType1Font(%s,%s)" % (self._descriptor,self.ev)
 
   def showto(self,canvas,s):
     canvas.setphysicalfont(self._descriptor)

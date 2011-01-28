@@ -67,15 +67,6 @@ class AffineTransform:
 
     return Point(self.a*x+self.c*y+self.tx, self.b*x+self.d*y+self.ty)
 
-    # This seems like a bad idea
-    #   
-    # if isinstance(p,BBox):
-    #   tbox = BBox()
-    #   tbox.include(self.T(p.ll()))
-    #   tbox.include(self.T(p.lr()))
-    #   tbox.include(self.T(p.ul()))
-    #   tbox.include(self.T(p.ur()))
-    #   return tbox      
 
   def Tinv(self,*args):
     if len(args) == 2:
@@ -170,7 +161,7 @@ class Path:
   def copy(self):
     cpath = Path()
     cpath.commands = [ c for c in self.commands ]
-    cpath.coords = [ p.copy() for p in self.coords ]
+    cpath.coords = [ p for p in self.coords ]
     if self.cp:
       cpath.cp = self.cp.copy()
     return cpath
@@ -253,7 +244,7 @@ class Path:
   def closepath(self):
     self.verify_cp()
     self.commands.append(self.CLOSEPATH)
-    self.coords.append(())
+    self.coords.append([])
 
   def append(self,p):
     self.commands.extend(p.commands)
@@ -289,6 +280,15 @@ class Path:
       elif(cmd==self.CURVETO):
         for c in coords: box.include(c)
     return box
+
+  def apply(self,a):
+    for k in range(len(self.coords)):
+      coords = self.coords[k]
+      print coords
+      if isinstance(coords,list):
+        self.coords[k]=(a.T(c) for c in coords)
+      else:
+        self.coords[k] = a.T(coords)
  
 class BBox:
   def __init__(self,*args):
@@ -297,15 +297,17 @@ class BBox:
       return
 
     if len(args) == 1:
-      bbox = bbox[0]
+      bbox = args[0]
     else:
       bbox = args
+
 
     if len(bbox) != 4:
       raise ValueError('A BBox must be constructed with nothing, a list [x0,y0,x1,y1], or four floats.\n Received %s.' % args)
     # we have x0, y0, x1, y1
     self.include(bbox[0],bbox[1])
     self.include(bbox[2],bbox[3])
+
 
   def __repr__(self):
     if self.xmin is None:
@@ -350,20 +352,35 @@ class BBox:
       if top < 0: raise ValueError('Margins must be non-negative')
       self.ymax += top
 
+  def isEmpty(self):
+    return self.xmin is None
+
   def thicken(self,w):
     self.addmargin(w,w,w,w)
 
   def ll(self):
-    return (self.xmin,self.ymin)
+    return Point(self.xmin,self.ymin)
 
   def lr(self):
-    return (self.xmax,self.ymin)
+    return Point(self.xmax,self.ymin)
 
   def ul(self):
-    return (self.xmin,self.ymax)
+    return Point(self.xmin,self.ymax)
 
   def ur(self):
-    return (self.xmax,self.ymax)
+    return Point(self.xmax,self.ymax)
+
+  def cl(self):
+    return Point(self.xmin,(self.ymin+self.ymax)/2)
+
+  def cr(self):
+    return Point(self.xmax,(self.ymin+self.ymax)/2)
+
+  def uc(self):
+    return Point((self.xmin+self.xmax)/2,self.ymax)
+
+  def lc(self):
+    return Point((self.xmin+self.xmax)/2,self.ymin)
 
   def width(self):
     return self.xmax-self.xmin
@@ -379,11 +396,12 @@ class BBox:
 
   def copy(self):
     cbox = BBox()
+    if self.xmin is None:
+      return cbox
     cbox.xmax=self.xmax
-    if not cbox.xmax is None:
-      cbox.ymax = self.ymax
-      cbox.xmin = self.xmin
-      cbox.ymin = self.ymin
+    cbox.ymax = self.ymax
+    cbox.xmin = self.xmin
+    cbox.ymin = self.ymin
     return cbox
 
   def path(self):

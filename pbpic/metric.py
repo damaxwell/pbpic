@@ -23,6 +23,13 @@ class Length:
 
   def __rmul__(self,s):
     return Length(self.x*s)
+
+  def __div__(self,s):
+    return Length(self.x/s)
+
+  def __rdiv__(self,s):
+    return Length(self.x/s)
+
     
   def value(self):
     return self.x
@@ -44,6 +51,12 @@ class MeasuredLength:
 
   def __rmul__(self,s):
     return MeasuredLength(self.x*s,self.scale,self.name)
+
+  def __div__(self,s):
+    return Length(self.x/s)
+
+  def __rdiv__(self,s):
+    return Length(self.x/s)
 
   def value(self):
     return self.x/self.scale
@@ -73,6 +86,15 @@ class Point:
 
   def __add__(self,l):
     return Point(self.x+l[0],self.y+l[1])
+
+  def __len__(self):
+    return 2
+
+  def __sub__(self,l):
+    return Vector(self.x-l[0],self.y-l[1])
+
+  def __neg__(self):
+    return Point(-self.x,-self.y)
   
   def __repr__(self):
     return 'Point (%g,%g)' % (self.x,self.y)
@@ -83,6 +105,9 @@ class Point:
     if i==1:
       return self.y
     raise IndexError()
+    
+  def copy(self):
+    return Point(self.x,self.y)
 
 
 class PagePoint:
@@ -99,12 +124,18 @@ class PagePoint:
   def __repr__(self):
     return 'PagePoint (%g,%g)' % (self.x,self.y)
 
+  def __len__(self):
+    return 2
+
   def __getitem__(self,i):
     if i==0:
       return self.x
     if i==1:
       return self.y
     raise IndexError()
+
+  def copy(self):
+    return PagePoint(self.x,self.y)
 
 
 class Segment:
@@ -124,8 +155,14 @@ class Segment:
   def __add__(self,l):
     return Segment(self.x+l.x,self.y+l.y)
   
+  def __sub__(self,l):
+    return Segment(self.x-l.x,self.y-l.y)
+  
   def __repr__(self):
     return 'Segment (%g,%g)' % (self.x,self.y)
+
+  def __len__(self):
+    return 2
   
   def __getitem__(self,i):
     if i==0:
@@ -185,6 +222,9 @@ class MeasuredSegment:
 
   def __rmul__(self,s):
     return MeasuredSegment(self.x*s,self.y*s,self.scale,self.name)
+
+  def __len__(self):
+    return 2
 
   def value(self):
     return [self.x/self.scale,self.y/self.scale]

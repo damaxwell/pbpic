@@ -137,9 +137,14 @@ class Type1Font:
     subr_re = re.compile( "dup[ \t\r\n]+([0-9]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ ]+[ \t\r\n]")
 
     subrs = [ None ] * numSubrs
+    send = 0
     for m in subr_re.finditer(tail):
+      # We might match the interior of a binary section.  If so, just continue on.
+      if m.start(0) < send:
+        continue
       sstart = m.end(0)
-      subrs[int(m.groups()[0])] = tail[sstart:sstart+int(m.groups()[1])]
+      send = sstart+int(m.groups()[1])
+      subrs[int(m.groups()[0])] = tail[sstart:send]
     self.subrs = subrs
 
     #CharStrings
@@ -151,13 +156,18 @@ class Type1Font:
     charstring_base = m.end(0)
     tail = self.private[charstring_base+1:]
     
-    charstring_re = re.compile( "/([^ \t\r\n]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ \t\r\n]+[ \t\r\n]")
+    charstring_re = re.compile( "/([^ \t\r\n/]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ \t\r\n]+[ \t\r\n]")
 
     charstrings = {}
     k = 0
+    cend = 0
     for m in charstring_re.finditer(tail):
+      # We might match the interior of a binary section.  If so, just continue on.
+      if m.start(0) < cend:
+        continue
       cstart = m.end(0)
-      charstrings[m.groups()[0]] = (k,tail[cstart:cstart+int(m.groups()[1])])
+      cend = cstart+int(m.groups()[1])
+      charstrings[m.groups()[0]] = (k,tail[cstart:cend])
       k += 1
     self.charstrings = charstrings
     
@@ -532,6 +542,13 @@ class EncodingVector:
     else:
       self.ev = [g.split('/')[-1] for g in encoding] # Remove any leading slash
     
+    
+  def __repr__(self):
+    if self.ev == AdobeStandardEncoding:
+      return "EncodingVector(AdobeStandard)"
+    else:
+      return "EncodingVector"
+
   def __getitem__(self,i):
     return self.ev[i]
 
@@ -553,7 +570,7 @@ def decrypt( s, R ):
 
 def decryptBytes( bytes, R):
   try:
-    import pbpic.pscodec as pscodec
+    import pscodec
     return pscodec.t1_decrypt( bytes, R )
   except ImportError:
     return decryptBytesSlow( bytes, R )

@@ -7,7 +7,7 @@ from color import GrayColor
 
 line_join_to_cairo={'bevel':cairo.LINE_JOIN_BEVEL, 'miter':cairo.LINE_JOIN_MITER, 'round':cairo.LINE_JOIN_ROUND}
 line_cap_to_cairo={'butt':cairo.LINE_CAP_BUTT, 'round':cairo.LINE_CAP_ROUND, 'square':cairo.LINE_CAP_SQUARE}
-
+fill_rule_to_cairo={'evenodd':cairo.FILL_RULE_EVEN_ODD, 'winding':cairo.FILL_RULE_WINDING}
 
 class PDFRenderer:
   def __init__(self,filename):
@@ -26,7 +26,7 @@ class PDFRenderer:
 
     self.setlinewidth(1)
     self.linecolor = GrayColor(1)
-    self.setgray(1)
+    self.fillcolor = GrayColor(1)
     self.ctx.set_font_size(1.)
 
   def end(self):
@@ -42,6 +42,14 @@ class PDFRenderer:
     path.drawto(self)
     self.ctx.stroke()
     self.lastOperation='stroke'
+  
+  def fill(self,path,gstate):
+    self.initfill(gstate)
+    self.fillcolor.renderto(self)
+    self.ctx.new_path()
+    path.drawto(self)
+    self.ctx.fill()
+    self.lastOperation='fill'
   
   def moveto(self,p):
     x=p[0]; y=p[1]
@@ -78,6 +86,9 @@ class PDFRenderer:
   def setlinecolor(self,c):
     self.linecolor = c
 
+  def setfillcolor(self,c):
+    self.fillcolor = c
+
   def setlinecap(self,cap):
     self.ctx.set_line_cap(line_cap_to_cairo[cap])
 
@@ -89,13 +100,20 @@ class PDFRenderer:
 
   def setdash(self,dash,phase):
     self.ctx.set_dash(dash,phase)
-    
+
+  def setfillrule(self,fillrule):
+    self.ctx.set_fill_rule(fill_rule_to_cairo[fillrule])
 
   def initstroke(self,gstate):
     # if self.lastOperation!='path':
     self.ctx.set_matrix(self.defaultMatrix)
     gstate.updatestrokestate(self)
     self.lastOperation = 'stroke'
+
+  def initfill(self,gstate):
+    self.ctx.set_matrix(self.defaultMatrix)
+    gstate.updatefillstate(self)
+    self.lastOperation = 'fill'
 
   def inittext(self,gstate):
     tm=gstate.texttm()

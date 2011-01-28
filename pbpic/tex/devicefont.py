@@ -1,7 +1,7 @@
 import resource, font
 import logging
 import re
-import pbpic.type1, pbpic.pbpfont
+import pbpic.type1, pbpic.pbpfont, pbpic.sysfont
 
 """dvipdfm fontmap entries are described in the dvipdfm user's manual.
 
@@ -32,7 +32,7 @@ class MapFileEntry:
     self.opts = opts
 
   def __str__(self):
-    return "FontMapEntry:%s (encoding %s) (PFB Font %s) (opts %s)" % (self.texFontName, self.encoding, self.sysFontName, self.opts)
+    return "FontMapEntry:%s (encoding %s) (PFB Font %s) (opts %s)" % (self.texFontName, self.encoding, self.pfbFontName, self.opts)
 
 class DviPdfMapFile:
 
@@ -151,7 +151,7 @@ class FontTable:
       encodingVector = resource.findEncoding(mapEntry.encoding)
 
     fd = pbpic.pbpfont.FontDescriptor(pfbpath)
-    font = pbpic.pbpfont.EncodedType1Font(fd,encodingVector)
+    font = pbpic.pbpfont.EncodedType1Font(fd,pbpic.sysfont.findcachedfont(fd),encodingVector)
     self.fontdict[texFontName] = font
     
     return font
