@@ -15,10 +15,10 @@ pscodec_module = Extension('pbpic/pscodec',
                     sources = ['pbpic/pscodec.c'])
 
 
-sysfont_mac_module = Extension('pbpic/sysfont_mac',
+sysfont_mac_module = Extension('pbpic/_sysfont_mac',
                     define_macros = [('MAJOR_VERSION', '1'),
                                      ('MINOR_VERSION', '0')],
-                    extra_link_args = ['-framework', 'ApplicationServices'],
+                    extra_link_args = ['-framework', 'ApplicationServices','-framework', 'CoreFoundation'],
                     sources = ['pbpic/sysfont_mac.c'])
 
 ExtensionModules = []
