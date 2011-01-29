@@ -1,6 +1,6 @@
 from __future__ import division
 from math import cos, sin, sqrt, pi
-from metric import Vector
+from metric import Point, Vector
 import random
 
 def arc(canvas,c,r,t0,t1):

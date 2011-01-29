@@ -17,10 +17,12 @@ _finalcanvas = None
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
 functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
               'setfillcolor', 'setfillrule',
+              'setfontangle', 'setfontcolor', 'setfonteffect',
               'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
               'lineto', 'moveto', 'rmoveto', 'rlineto', 'curveto', 'polygon', 'closepath', 'stroke', 'kstroke', 
               'fill', 'kfill', 'scaleto', 'scale', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
+              'pagetranslate', 'pagerotate', 'pagescale',
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
               'draw', 'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks', 'applystyle', 'currentpoint', 'extents' ]
 for f in functions:
@@ -65,7 +67,6 @@ def pbpbegin(w=None,h=None,target=None,bbox=None):
     # Assume we have a renderer
     renderer = target
 
-  print 'begin',w,h,bbox,renderer
   if renderer is None:
     _canvas = Inset(w,h,bbox)
   elif (w is None) and (h is None) and (bbox is None):
@@ -74,12 +75,10 @@ def pbpbegin(w=None,h=None,target=None,bbox=None):
   else:
     _canvas=canvas.Canvas(w=w,h=h,bbox=bbox,renderer=renderer)
 
-  print 'fc',_finalcanvas
   _canvas.begin()
   
   # If default styles have been set, we apply them at the start of the page.  Maybe this is a bad idea.
   applystyle()
-  print 'fc',_finalcanvas
 
 
 
@@ -89,7 +88,6 @@ def pbpend():
   # FIXME: check that we have popped everything off of the canvas stack?
   _canvas.end()
 
-  print 'end',_finalcanvas
   rv = _canvas
   if not _finalcanvas is None:
     # The top canvas should be an inset.  Determine its bounding box, set the boundingbox of the cavnas, and do a simple draw.
@@ -109,8 +107,8 @@ def pbpend():
 begin=pbpbegin
 end=pbpend
 
-def inset():
-  return InsetGuard()
+def inset(*args,**kwargs):
+  return InsetGuard(*args,**kwargs)
 
 _canvasstack = []
 _canvas = None
@@ -124,9 +122,9 @@ def popcanvas():
   _canvas = _canvasstack.pop()
 
 class InsetGuard:
-  def __enter__(self):
+  def __enter__(self,*args,**kwargs):
     global _canvas
-    self.i = Inset()
+    self.i = Inset(*args,**kwargs)
     self.i.begin()
     _canvas.gstate.copystyle(self.i)
     pushcanvas(self.i)

@@ -121,7 +121,6 @@ class Canvas:
     self.fillStyleCmds = { 'color':self.setfillcolor, 'rule':self.setfillrule }
 
   def _setextents(self,w,h,bbox):
-    print 'setextents',w,h,bbox
     if (not w is None) or (not h is None):
       if not bbox is None:
         raise ValueError("Cannot set canvas size from both a bounding box and a width/height specifiation.")
@@ -147,6 +146,7 @@ class Canvas:
     self.markedpoints = BBoxMarkedPoints(self._extents)
 
     if self.renderer: self.renderer.begin(self._extents)
+    self.gstate.copystyle(self)
 
   def end(self):
     if self.renderer: self.renderer.end()
@@ -313,6 +313,15 @@ class Canvas:
   def setfontsize(self,size):
     self.gstate.setfontsize(size)
 
+  def setfontangle(self,angle):
+    self.gstate.setfontangle(angle)
+    
+  def setfonteffect(self,fonteffect):
+    self.gstate.setfonteffect(fonteffect)
+  
+  def setfontcolor(self,fontcolor):
+    self.gstate.setfontcolor(fontcolor)
+
   def show(self,s):
     self.gstate.font.showto(self,s)
 
@@ -380,25 +389,6 @@ class Canvas:
   def kfill(self):
     if self.renderer:
       self.renderer.fill(self.gstate.path,self.gstate)
-
-    # pathbox=BBox()
-    # cp = None
-    # lastv = None
-    # start = None
-    # for (cmd,coords) in self.gstate.path:
-    #   if cmd == Path.MOVETO:
-    #     cp=coords
-    #     start=cp
-    #     lastv = None
-    #   elif cmd == Path.LINETO:
-    #     v = coords-cp
-    #     if lastv is None:
-    #       r=Vector(-v[1],v[0])
-    #       
-    #     
-    #     lastv = coords-cp
-    #     
-
 
   def applystyle(self,s=None):
     if s is None:
@@ -474,6 +464,20 @@ class Canvas:
 
   def frotate(self,ftheta):
     self.rotate(2*math.pi*ftheta)
+
+  def pagetranslate(self,*args):
+    if len(args) == 2:
+      x=args[0]; y=args[1]
+    elif len(args) == 1:
+      p = args[0]
+      x=p[0]; y=p[1]
+    self.gstate.ptm.translate(x,y)
+
+  def pagerotate(self,theta):
+    self.gstate.ptm.rotate(theta)
+
+  def pagescale(self,sx,sy):
+    self.gstate.ptm.scale(sx,sy)
 
   def offset(self,v,len):
     if not isinstance(v,Vector):

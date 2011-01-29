@@ -1,5 +1,5 @@
 from canvas import Canvas
-from geometry import BBox
+from geometry import BBox, AffineTransform
 from render_bbox import BBoxRenderer
 from metric import pt
 class Inset(Canvas):
@@ -9,7 +9,7 @@ class Inset(Canvas):
     self.script=[]
 
   def drawto(self,canvas,origin=None):
-    
+
     # If we have a named point, use it.  This will raise an exception if the point doesn't exist.
     if isinstance(origin,str):
       origin = self.pagemark(origin)
@@ -22,27 +22,37 @@ class Inset(Canvas):
 
     with canvas.gsave():
       if canvas.currentpointexists():
-        canvas.translate(canvas.currentpoint())
-      canvas.scaleto(1*pt)
-      # canvas.gstate.ctm.makeortho() # FIXME This is rude -- modifying the gstate of a different canvas directly
-
+        p=canvas.currentpoint()
+      else:
+        p=(0,0)
+      page_p = canvas.gstate.ctm.T(p)
+      ptm = canvas.gstate.ptm
+      device_p=ptm.T(page_p)
+      canvas.pagetranslate(device_p)
+      v=ptm.Tv(canvas.Tv((1,0)))
+      canvas.pagerotate(v.angle())
       if not origin is None:
-        canvas.translate(-(origin[0]),-(origin[1]))
+        canvas.pagetranslate(-(origin[0]),-(origin[1]))
 
+      canvas.setctm(AffineTransform())
+      
       canvas.newpath()  
       # FIXME: shouldn't we set the canvas gstate so that it matches what the inset had at the start of its life?
       for f in self.script:
         args=f[1]; kwargs=f[2]
         fcn=canvas.__class__.__dict__[f[0]]
         fcn(canvas,*args,**kwargs)
-
+      
 
   wrapped_methods = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
                       'setcolor', 'setrgbcolor', 'setgray', 'newpath',
+                      'setctm',
                       'setfillcolor', 'setfillrule', 
                       'lineto', 'moveto', 'curveto', 'closepath', 
-                      'kstroke', 'kfill', 'stroke', 'fill', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 'setphysicalfont', 
-                      'setfontsize', 'showglyphs', 'rotate', 'setfont' ]
+                      'kstroke', 'kfill', 'stroke', 'fill', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 
+                      'setphysicalfont', 'setfontsize', 'setfontangle', 'setfontcolor', 'setfonteffect',
+                      'pagetranslate', 'pagerotate',
+                      'showglyphs', 'rotate' ]
 
   template = '''def %s(self,*args,**kwargs): 
                    self.script.append(('%s',args,kwargs)); 
@@ -60,7 +70,6 @@ class Inset(Canvas):
     return s
     
   def setextents(self,bbox):
-    print 'setextentds %s' % bbox
     if bbox is None:
       self._extents = None
     else:

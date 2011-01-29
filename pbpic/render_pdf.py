@@ -23,6 +23,9 @@ class PDFRenderer:
     self.ty = h + ll[1]
     self.ctx = cairo.Context (self.surface)
     self.defaultMatrix = self.ctx.get_matrix()
+    self.llOriginMatrix = self.ctx.get_matrix()
+    self.llOriginMatrix.scale(1,-1)
+    self.llOriginMatrix.translate(0,-self.ty)
 
     self.setlinewidth(1)
     self.linecolor = GrayColor(1)
@@ -53,17 +56,17 @@ class PDFRenderer:
   
   def moveto(self,p):
     x=p[0]; y=p[1]
-    self.ctx.move_to(x-self.tx,self.ty-y)
+    self.ctx.move_to(x,y)
 
   def lineto(self,p):
     x=p[0]; y=p[1]
-    self.ctx.line_to(x-self.tx,self.ty-y)
+    self.ctx.line_to(x,y)
 
   def curveto(self,p0,p1,p2):
     x0=p0[0]; y0=p0[1]
     x1=p1[0]; y1=p1[1]
     x2=p2[0]; y2=p2[1]
-    self.ctx.curve_to(x0-self.tx,self.ty-y0,x1-self.tx,self.ty-y1,x2-self.tx,self.ty-y2)
+    self.ctx.curve_to(x0,y0,x1,y1,x2,y2)
 
   def closepath(self):
     self.ctx.close_path()
@@ -105,23 +108,29 @@ class PDFRenderer:
     self.ctx.set_fill_rule(fill_rule_to_cairo[fillrule])
 
   def initstroke(self,gstate):
-    # if self.lastOperation!='path':
-    self.ctx.set_matrix(self.defaultMatrix)
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
     gstate.updatestrokestate(self)
     self.lastOperation = 'stroke'
 
   def initfill(self,gstate):
-    self.ctx.set_matrix(self.defaultMatrix)
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
     gstate.updatefillstate(self)
     self.lastOperation = 'fill'
 
   def inittext(self,gstate):
-    tm=gstate.texttm()
-    tm.c *= -1
-    tm.b *= -1
-    tm.tx = gstate.path.cp.x - self.tx
-    tm.ty = self.ty-gstate.path.cp.y
-    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple()))
+    tm = gstate.ptm.copy()
+    tm.concat(gstate.texttm(reflectY=True))
+    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
+
+    # tm = gstate.ptm.copy()
+    # tm.concat(gstate.texttm())
+    # tm.b *=-1
+    # tm.c *=-1
+    # tm.tx -= self.tx
+    # tm.ty = self.ty-tm.ty
+    # self.ctx.set_matrix(cairo.Matrix(*tm.asTuple()))
     gstate.updatetextstate(self)
     self.lastOperation = 'text'
 
