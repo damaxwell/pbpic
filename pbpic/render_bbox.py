@@ -19,7 +19,14 @@ class BBoxRenderer:
 
   def bbox(self):
     return self._bbox.copy()
-    
+
+
+  def gsave(self):
+    pass
+  
+  def grestore(self):
+    pass
+
   def stroke(self,path,gstate):
     bbox = self._bbox
     ctm = self.ctm
@@ -41,7 +48,7 @@ class BBoxRenderer:
   def showglyphs(self,s,gstate,metrics):
     font = sysfont.findcachedfont(gstate.fontdescriptor)
 
-    ttm = gstate.texttm()
+    ttm = gstate.fonttm()
     ctm = self.ctm
 
     for k in xrange(len(s)):

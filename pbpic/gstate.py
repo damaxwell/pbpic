@@ -17,7 +17,7 @@ class GState:
     self.linewidth = 1*pt
     self.linecolor = GrayColor(1)
     self.linecap='square'
-    self.linejoin='butt'
+    self.linejoin='miter'
     self.miterlimit=1
     self.dash = nodash
 
@@ -37,8 +37,10 @@ class GState:
     # Transformation from page to device coordinates
     self.ptm=AffineTransform()
 
-    self.pendingdict = {}
-    self.useddict = {}
+    self.strokepending = { GState.updatelinewidth:True, GState.updatelinecolor:True, GState.updatelinecap:True, GState.updatelinejoin:True,
+                              GState.updatemiterlimit:True, GState.updatedash:True}
+    self.fillpending = { GState.updatefillcolor:True, GState.updatefillrule:True }
+    self.fontpending = { GState.updatefontdescriptor:True, GState.updatefontcolor:True, GState.updatefontmatrix:True }
 
   def copystyle(self,other):
     other.setlinewidth(self.linewidth)
@@ -63,11 +65,12 @@ class GState:
     copy.ctm=self.ctm.copy()
     copy.ptm=self.ptm.copy()
     copy.fonteffect=self.fonteffect.copy()
-    copy.pendingdict = self.pendingdict.copy()
-    copy.useddict = self.useddict.copy()
+    copy.strokepending=self.strokepending.copy()
+    copy.fillpending=self.fillpending.copy()
+    copy.fontpending=self.fontpending.copy()
     return copy
     
-  def texttm(self,reflectY=False):
+  def fonttm(self,reflectY=False):
     ttm = AffineTransform()
     ttm.tx=self.path.cp.x
     ttm.ty=self.path.cp.y
@@ -77,70 +80,52 @@ class GState:
     if reflectY:
       ttm.scale(1,-1)
     return ttm
-    
-    # ttm = self.textEffectMatrix.copy()
-    # ttm.rotate(self.textAngle*2*math.pi)
-    # ttm.scale(self.fontsize)
-    
-    # ttm = self.ctm.orthoFrameX()
-    # self.path.verify_cp()
-    # ttm.tx = self.path.cp.x
-    # ttm.ty = self.path.cp.y
-    # ttm.dilate(self.fontsize)
-    # ttm = self.ctm.orthoFrameX()
-    # self.path.verify_cp()
-    # ttm.tx = self.path.cp.x
-    # ttm.ty = self.path.cp.y
-    # ttm.dilate(self.fontsize)
-    # if reflectY:
-    #   tm.scale(1,-1)
-    # return ttm
 
   def setlinewidth(self,w):
     if self.linewidth == w: return
     self.linewidth=w
-    self.setpending('linewidth')
+    self.strokepending[GState.updatelinewidth] = True
 
   def setlinecolor(self,c):
     if self.linecolor == c: return
     self.linecolor=c
-    self.setpending('linecolor')
+    self.strokepending[GState.updatelinecolor] = True
 
   def setlinecap(self,cap):
     if self.linecap == cap: return
     self.linecap=cap
-    self.setpending('linecap')
+    self.strokepending[GState.updatelinecap] = True
 
   def setlinejoin(self,join):
     if self.linejoin == join: return
     self.linejoin = join
-    self.setpending('linejoin')
+    self.strokepending[GState.updatelinejoin] = True
 
   def setmiterlimit(self,ml):
     if self.miterlimit == ml: return
     self.miterlimit = ml
-    self.setpending('miterlimit')
+    self.strokepending[GState.updatemiterlimit] = True
 
   def setdash(self,d):
     if self.dash == d: return
     self.dash = ([p for p in d[0]],d[1])
-    self.setpending('dash')
+    self.strokepending[GState.updatedash] = True
 
   def setfillcolor(self,c):
     if self.fillcolor == c: return
     self.fillcolor=c
-    self.setpending('fillcolor')
+    self.fillpending[GState.updatefillcolor] = True
 
   def setfillrule(self,r):
     if self.fillrule == r: return
     self.fillrule=r
-    self.setpending('fillrule')
+    self.fillpending[GState.updatefillrule] = True
     
   def setphysicalfont(self,fontdescriptor):
     if self.fontdescriptor == fontdescriptor:
       return
     self.fontdescriptor=fontdescriptor
-    self.setpending('fontdescriptor')
+    self.fontpending[GState.updatefontdescriptor] = True
 
   def setfontsize(self,fontsize):
     if isinstance(fontsize,MeasuredLength):
@@ -148,74 +133,116 @@ class GState:
     if fontsize == self.fontsize:
       return
     self.fontsize=fontsize
-    self.setpending('fontsize')
+    self.fontpending[GState.updatefontmatrix] = True
 
   def setfontangle(self,fontangle):
     if fontangle == self.fontangle:
       return
     self.fontangle=fontangle
-    self.setpending('fontangle')
+    self.fontpending[GState.updatefontmatrix] = True
+
+  def setfonteffect(self,fonteffect):
+    if fonteffect == self.fonteffect:
+      return
+    self.fonteffect=fonteffect
+    self.fontpending[GState.updatefontmatrix] = True
 
   def setfontcolor(self,fontcolor):
     if fontcolor == self.fontcolor:
       return
     self.fontcolor=fontcolor
-    self.setpending('fontcolor')
-  
-  def setfonteffect(self,fonteffect):
-    if fonteffect == self.fonteffect:
-      return
-    self.fonteffect=fonteffect
-    self.setpending('fonteffect')
+    self.fontpending[GState.updatefontcolor] = True
 
   def setfont(self,font):
     if self.font == font:
       return
     self.font=font
 
-  def setpending(self, name):
-    if isinstance(name,GState):
-      self.pendingdict.update(name.useddict)
-      self.useddict.update(name.useddict)
-    else:
-      self.pendingdict[name] = True
-      self.useddict[name] = True
-
-  def setused(self,name):
-    if isinstance(name,GState):
-      self.useddict.update(name.useddict)
-    else:
-      self.useddict[name] = True
-
-  def checkpending(self,name):
-    if self.pendingdict.has_key(name):
-      self.pendingdict.pop(name)
-      return True
-    return False
-
-  def updatestrokestate(self,renderer):
-    if self.checkpending('linewidth'):
-      renderer.setlinewidth(self.linewidth)
-    if self.checkpending('linecolor'):
-      renderer.setlinecolor(self.linecolor)
-    if self.checkpending('linecap'):
-      renderer.setlinecap(self.linecap)
-    if self.checkpending('linejoin'):
-      renderer.setlinejoin(self.linejoin)
-    if self.checkpending('miterlimit'):
-      renderer.setmiterlimit(self.miterlimit)
-    if self.checkpending('dash'):
-      renderer.setdash(*self.dash)
-
-  def updatefillstate(self,renderer):
-    if self.checkpending('fillcolor'):
-      renderer.setfillcolor(self.fillcolor)
-    if self.checkpending('fillrule'):
-      renderer.setfillrule(self.fillrule)
-
-  def updatetextstate(self,renderer):
-    if self.checkpending('fontcolor'):
-      self.fontcolor.renderto(renderer)
-    if self.checkpending('fontdescriptor'):
-      renderer.setfont(self.fontdescriptor)
+  def updatestroke(self,renderer):
+    for fcn in self.strokepending.keys():
+      fcn(self,renderer)
+    self.strokepending.clear()
     
+  def updatefill(self,renderer):
+    for fcn in self.fillpending.keys():
+      fcn(self,renderer)
+    self.fillpending.clear()
+    
+  def updatefont(self,renderer):
+    for fcn in self.fontpending.keys():
+      fcn(self,renderer)
+    self.fontpending.clear()
+
+    
+  def updatelinewidth(self,renderer):
+    renderer.setlinewidth(self.linewidth)
+
+  def updatelinecolor(self,renderer):
+    renderer.setlinecolor(self.linecolor)
+    
+  def updatelinecap(self,renderer):
+    renderer.setlinecap(self.linecap)
+
+  def updatelinejoin(self,renderer):
+    renderer.setlinejoin(self.linejoin)
+
+  def updatemiterlimit(self,renderer):
+    renderer.setmiterlimit(self.miterlimit)
+
+  def updatedash(self,renderer):
+    renderer.setdash(*self.dash)
+
+
+
+  def updatefillcolor(self,renderer):
+    renderer.setfillcolor(self.fillcolor)
+
+  def updatefillrule(self,renderer):
+    renderer.setfillrule(self.fillrule)
+
+
+
+  def updatefontdescriptor(self,renderer):
+    renderer.setfont(self.fontdescriptor)
+
+  def updatefontcolor(self,renderer):
+    renderer.setfontcolor(self.fontcolor)
+    
+  def updatefontmatrix(self,renderer):
+    pass
+    
+    
+  # def checkpending(self,name):
+  #   if self.pendingdict.has_key(name):
+  #     self.pendingdict.pop(name)
+  #     return True
+  #   return False
+  # 
+  # def updatestrokestate(self,renderer):
+  #   
+  #   if self.checkpending('linewidth'):
+  #     renderer.setlinewidth(self.linewidth)
+  #   if self.checkpending('linecolor'):
+  #     renderer.setlinecolor(self.linecolor)
+  #   if self.checkpending('linecap'):
+  #     renderer.setlinecap(self.linecap)
+  #   if self.checkpending('linejoin'):
+  #     renderer.setlinejoin(self.linejoin)
+  #   if self.checkpending('miterlimit'):
+  #     renderer.setmiterlimit(self.miterlimit)
+  #   if self.checkpending('dash'):
+  #     renderer.setdash(*self.dash)
+  # 
+  # def updatefillstate(self,renderer):
+  #   if self.checkpending('fillcolor'):
+  #     renderer.setfillcolor(self.fillcolor)
+  #   if self.checkpending('fillrule'):
+  #     renderer.setfillrule(self.fillrule)
+  # 
+  # def updatetextstate(self,renderer):
+  #   if self.checkpending('fontcolor'):
+  #     renderer.setfontcolor(self.fontcolor)
+  #   if self.checkpending('fontdescriptor'):
+  #     renderer.setfont(self.fontdescriptor)
+  #   if self.checkpending('fontangle') or self.checkpending('fonteffect') or self.checkpending('fontsize'):
+  #     renderer.setfonttm(self.fonttm())

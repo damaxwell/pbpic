@@ -9,6 +9,11 @@ line_join_to_cairo={'bevel':cairo.LINE_JOIN_BEVEL, 'miter':cairo.LINE_JOIN_MITER
 line_cap_to_cairo={'butt':cairo.LINE_CAP_BUTT, 'round':cairo.LINE_CAP_ROUND, 'square':cairo.LINE_CAP_SQUARE}
 fill_rule_to_cairo={'evenodd':cairo.FILL_RULE_EVEN_ODD, 'winding':cairo.FILL_RULE_WINDING}
 
+_None = 0
+_Stroke = 1
+_Fill = 2
+_Font = 3
+
 class PDFRenderer:
   def __init__(self,filename):
     self.surface = cairo.PDFSurface (filename, 0,0)
@@ -32,28 +37,76 @@ class PDFRenderer:
     self.fillcolor = GrayColor(1)
     self.ctx.set_font_size(1.)
 
+    self.gstack = []
+
+    self.lastOperation = _None
+    self.color = _None
+
   def end(self):
     self.surface.finish()
     del self.ctx
     self.ctx = None
 
+  def gsave(self):
+    self.gstack.append((self.lastOperation,self.color))
+    self.ctx.save()
+
+  def grestore(self):
+    (self.lastOperation,self.color) = self.gstack.pop()
+    self.ctx.restore()
+
   def stroke(self,path,gstate):
-    self.initstroke(gstate)
-    self.linecolor.renderto(self)
+    if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
+      pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+      self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
+
+    gstate.updatestroke(self)    
+    if self.color != _Stroke:
+      gstate.linecolor.renderto(self)
+      self.color = _Stroke
+    
     # FIXME: is the newpath right?
     self.ctx.new_path()
     path.drawto(self)
     self.ctx.stroke()
-    self.lastOperation='stroke'
+    self.lastOperation=_Stroke
   
   def fill(self,path,gstate):
-    self.initfill(gstate)
-    self.fillcolor.renderto(self)
+    if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
+      pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+      self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
+
+    gstate.updatefill(self)    
+    if self.color != _Fill:
+      gstate.fillcolor.renderto(self)
+      self.color = _Fill
+
     self.ctx.new_path()
     path.drawto(self)
     self.ctx.fill()
-    self.lastOperation='fill'
-  
+    self.lastOperation=_Fill
+
+
+  def showglyphs(self,s,gstate,metrics):
+
+    tm = gstate.ptm.copy()
+    tm.concat(gstate.fonttm(reflectY=True))
+    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
+
+    gstate.updatefont(self)
+    if self.color != _Font:
+      gstate.fontcolor.renderto(self)
+      self.color = _Font
+
+    p = Point(0,0)
+    g = len(s)*[None]
+    for k in xrange(len(s)):
+      g[k] = (s[k],p.x,p.y)
+      p = p + metrics[k].advance
+    self.ctx.show_glyphs(g)
+    self.lastOperation = _Font
+
+
   def moveto(self,p):
     x=p[0]; y=p[1]
     self.ctx.move_to(x,y)
@@ -71,26 +124,23 @@ class PDFRenderer:
   def closepath(self):
     self.ctx.close_path()
 
+
+
   def setrgbcolor(self,r,g,b):
     self.ctx.set_source_rgb(r,g,b)
     
   def setgray(self,g):
     self.ctx.set_source_rgb(1.-g,1.-g,1.-g)
-    
+
+
   def setlinewidth(self,w):
-    oldmatrix = self.ctx.get_matrix()
-    self.ctx.set_matrix(self.defaultMatrix)
     if isinstance(w,MeasuredLength):
-      self.ctx.set_line_width(w.ptValue())
-    else:
-      self.ctx.set_line_width(w)
-    self.ctx.set_matrix(oldmatrix)
+      w=w.ptValue()
+    self.ctx.set_line_width(w)
 
   def setlinecolor(self,c):
-    self.linecolor = c
-
-  def setfillcolor(self,c):
-    self.fillcolor = c
+    if self.color == _Stroke:
+      self.color = _None
 
   def setlinecap(self,cap):
     self.ctx.set_line_cap(line_cap_to_cairo[cap])
@@ -104,52 +154,24 @@ class PDFRenderer:
   def setdash(self,dash,phase):
     self.ctx.set_dash(dash,phase)
 
+
+
+  def setfillcolor(self,c):
+    if self.color == _Fill:
+      self.color = _None
+
   def setfillrule(self,fillrule):
     self.ctx.set_fill_rule(fill_rule_to_cairo[fillrule])
 
-  def initstroke(self,gstate):
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
-    gstate.updatestrokestate(self)
-    self.lastOperation = 'stroke'
-
-  def initfill(self,gstate):
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
-    gstate.updatefillstate(self)
-    self.lastOperation = 'fill'
-
-  def inittext(self,gstate):
-    tm = gstate.ptm.copy()
-    tm.concat(gstate.texttm(reflectY=True))
-    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
-
-    # tm = gstate.ptm.copy()
-    # tm.concat(gstate.texttm())
-    # tm.b *=-1
-    # tm.c *=-1
-    # tm.tx -= self.tx
-    # tm.ty = self.ty-tm.ty
-    # self.ctx.set_matrix(cairo.Matrix(*tm.asTuple()))
-    gstate.updatetextstate(self)
-    self.lastOperation = 'text'
 
   def setfont(self,fontdescriptor):
     ftFont = ftFontForDescriptor(fontdescriptor)
     self.ctx.set_font_face(ftFont)
 
-  def setfontsize(self,size):
-    pass
+  def setfontcolor(self,c):
+    if self.color == _Font:
+      self.color = _None
   
-  def showglyphs(self,s,gstate,metrics):
-    self.inittext(gstate)
-    p = Point(0,0)
-    g = len(s)*[None]
-    for k in xrange(len(s)):
-      g[k] = (s[k],p.x,p.y)
-      p = p + metrics[k].advance
-    self.ctx.show_glyphs(g)
-    self.lastOperation='text'
 
 import ctypes, ctypes.util
 import cairo

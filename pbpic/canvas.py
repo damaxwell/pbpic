@@ -430,7 +430,7 @@ class Canvas:
     adv = Vector(0,0)
     for m in metrics:
       adv += m.advance
-    adv = self.gstate.texttm().Tv(adv)
+    adv = self.gstate.fonttm().Tv(adv)
     self.gstate.path.rmoveto(adv)
 
   def scaleto(self,size):
@@ -528,13 +528,16 @@ class Canvas:
 
   def gsave(self):
     self.gstack.append(self.gstate.copy())
+    if not self.renderer is None:
+      self.renderer.gsave()
 
     return GRestorer(self)
   
   def grestore(self):
-    self.gstack[-1].setpending(self.gstate)
     self.gstate = self.gstack.pop()
-    pass
+
+    if not self.renderer is None:
+      self.renderer.grestore()
 
   def ctmsave(self):
     return CTMRestorer(self)
