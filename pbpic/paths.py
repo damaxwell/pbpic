@@ -77,6 +77,17 @@ def box(canvas,r):
     c = Point(0,0)  
   canvas.path() + (c.x+r,c.y-r) - (c.x+r,c.y+r) - (c.x-r,c.y+r) - (c.x-r,c.y-r) - 0
 
+
+def rect(canvas,w,h):
+  """Adds a rectangle of width 'w' and height 'h' to the current path with its lower left corner at the current point (or at the
+  origin if no currentpoint exists)"""
+  if not canvas.currentpointexists():
+    canvas.moveto(0,0)
+  canvas.rlineto(w,0)
+  canvas.rlineto(0,h)
+  canvas.rlineto(-w,0)
+  canvas.closepath()
+
 def hlines(canvas,w,dy,N):
   """Adds a sequence of N horizontal lines of width w spaced dy between to the current path, starting at the currentpoint."""
   if canvas.currentpointexists():

@@ -337,19 +337,34 @@ class BBox:
     if self.xmax<box.xmax: self.xmax = box.xmax
     if self.ymin>box.ymin: self.ymin = box.ymin
     if self.ymax<box.ymax: self.ymax = box.ymax
+
+  def shrink(self,left=None,right=None,top=None,bottom=None):
+    if left:
+      self.xmin += left
+      if self.xmin > self.xmax: self.xmin=self.xmax
+    if right:
+      self.xmax -= right
+      if self.xmin > self.xmax: self.xmin=self.xmax
+    if top:
+      self.ymax -= top
+      if self.ymin > self.ymax: self.ymin=self.ymax
+    if bottom:
+      self.ymin += bottom
+      if self.ymin > self.ymax: self.ymin=self.ymax
+    
     
   def addmargin(self,left=None,right=None,top=None,bottom=None):
     if left:
-      if left < 0: raise ValueError('Margins must be non-negative')
+      # if left < 0: raise ValueError('Margins must be non-negative')
       self.xmin -= left
     if right:
-      if right < 0: raise ValueError('Margins must be non-negative')
+      # if right < 0: raise ValueError('Margins must be non-negative')
       self.xmax += right
     if bottom:
-      if bottom < 0: raise ValueError('Margins must be non-negative')
+      # if bottom < 0: raise ValueError('Margins must be non-negative')
       self.ymin -= bottom
     if top:
-      if top < 0: raise ValueError('Margins must be non-negative')
+      # if top < 0: raise ValueError('Margins must be non-negative')
       self.ymax += top
 
   def isEmpty(self):
