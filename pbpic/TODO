@@ -2,6 +2,9 @@ rotations should be in circle fractions by default.
 
 verify currentpoint before show and whereverelse
 
+big buildup of initial gstate parameters at the start of an inset.  Fix this.
+
+
 INITIALIZE GSTATE in the renderer!!!!!
 
 WHy am I keeping trakc of lastOPERATION in render_pdf
@@ -18,3 +21,4 @@ Done: cache DVIs
 
 Done: TrueType collections
 
+Done: should paths be stored in feature or page coordinates?  PAGE
