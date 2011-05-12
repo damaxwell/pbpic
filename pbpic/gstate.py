@@ -31,6 +31,8 @@ class GState:
     self.fontangle = 0
     self.fontcolor = GrayColor(1)
 
+    self.clippaths = []
+
     # Transformation from local to page coordinates
     self.ctm=AffineTransform()
 
@@ -68,6 +70,7 @@ class GState:
     copy.strokepending=self.strokepending.copy()
     copy.fillpending=self.fillpending.copy()
     copy.fontpending=self.fontpending.copy()
+    copy.clippaths = [p.copy() for p in self.clippaths]
     return copy
     
   def fonttm(self,reflectY=False):
@@ -157,6 +160,9 @@ class GState:
     if self.font == font:
       return
     self.font=font
+
+  def clip(self,path):
+    self.clippaths.append(path.copy())
 
   def updatestroke(self,renderer):
     for fcn in self.strokepending.keys():
