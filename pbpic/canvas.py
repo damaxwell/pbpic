@@ -163,28 +163,29 @@ class Canvas:
       x = p[0]; y = p[1]
     else:
       raise ValueError()
-    return self.gstate.ctm.T(x,y)
+    return self.gstate.ptm.T(self.gstate.ctm.T(x,y))
 
   def toOneVector(self,*args):
     if len(args) == 2:
-      if isvectorlike(args[0]):
-        v = self.offset(args[0],args[1])
-        x=v[0]; y=v[1]
-      else:
         x = args[0]; y=args[1]
     else:
       x = args[0][0]; y=args[0][1]
 
-    if isinstance(x,MeasuredLength):
-      v0 = self.offset(Vector(1,0),x)
-    else:
-      v0 = Vector(x,0)
-    if isinstance(y,MeasuredLength):
-      v1 = self.offset(Vector(0,1),y)
-    else:
-      v1 = Vector(0,y)
-    return self.gstate.ctm.Tv(v0+v1)
+    if isvectorlike(x):
+      v = self.gstate.ctm.Tv(self.offset(args[0],args[1]))
+    else:      
+      if isinstance(x,MeasuredLength):
+        v0 = self.gstate.ctm.Tv(self.offset(Vector(1,0),x))
+      else:
+        v0 = self.gstate.ctm.Tv((x,0))
 
+      if isinstance(y,MeasuredLength):
+        v1 = self.gstate.ctm.Tv(self.offset(Vector(0,1),y))
+      else:
+        v1 = self.gstate.ctm.Tv((0,y))        
+      v = v0+v1
+
+    return self.gstate.ptm.Tv(v)
 
   def pagemark(self,name):
     return self.markedpoints[name]
@@ -264,20 +265,10 @@ class Canvas:
   def dash(self):
     return ([d for d in self.gstate.dash[0] ], self.gstate.dash[1])
 
-  def setcolor(self,c):
-    self.setlinecolor(c)
-    # self.setfillcolor(c)
-
-  def setrgbcolor(self,r,g,b):
-    self.setcolor(RGBColor(r,g,b))
-  
-  def setgray(self,g):
-    self.setcolor(GrayColor(g))
-
   def currentpoint(self):
     cp = self.gstate.path.cp
     if cp is None: return cp
-    return self.Tinv(cp)
+    return self.gstate.ctm.Tinv(self.gstate.ptm.Tinv(cp))
 
   def currentpointexists(self):
     return not self.gstate.path.cp is None
@@ -390,6 +381,13 @@ class Canvas:
     if self.renderer:
       self.renderer.fill(self.gstate.path,self.gstate)
 
+  def clip(self):
+    if self.renderer:
+      self.renderer.clip(self.gstate.path,self.gstate)
+    self.gstate.clip(self.gstate.path)
+    self.gstate.path.clear()
+    
+
   def applystyle(self,s=None):
     if s is None:
       s = style()
@@ -486,17 +484,17 @@ class Canvas:
 
   def T(self,p):
     q = self.gstate.ctm.T(p)
-    return q
+    return self.gstate.ptm.T(q)
 
   def Tinv(self,q):
-    return self.gstate.ctm.Tinv(q)
-
+    p = self.gstate.ctm.Tinv(q)
+    return self.gstate.ptm.Tinv(p)
 
   def Tv(self,v):
-    return self.gstate.ctm.Tv(v)
+    return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
 
   def Tvinv(self,w):
-    return self.gstate.ctm.Tvinv(w)
+    return self.gstate.ptm.Tv(self.gstate.ctm.Tvinv(w))
 
   def draw(self,o,*args,**kwargs):
     self.place(o,*args,**kwargs)

@@ -56,9 +56,9 @@ class PDFRenderer:
     self.ctx.restore()
 
   def stroke(self,path,gstate):
-    if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
-      pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-      self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
+    # if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
+    #   pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+    #   self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
 
     gstate.updatestroke(self)    
     if self.color != _Stroke:
@@ -67,14 +67,20 @@ class PDFRenderer:
     
     # FIXME: is the newpath right?
     self.ctx.new_path()
+    
+    self.ctx.set_matrix(self.llOriginMatrix)
     path.drawto(self)
+
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)        
     self.ctx.stroke()
+
     self.lastOperation=_Stroke
   
   def fill(self,path,gstate):
-    if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
-      pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-      self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
+    # if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
+    #   pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
+    #   self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
 
     gstate.updatefill(self)    
     if self.color != _Fill:
@@ -82,8 +88,27 @@ class PDFRenderer:
       self.color = _Fill
 
     self.ctx.new_path()
+
+    self.ctx.set_matrix(self.llOriginMatrix)
     path.drawto(self)
+
     self.ctx.fill()
+    self.lastOperation=_Fill
+
+
+  def clip(self,path,gstate):
+
+    gstate.updatefill(self)    
+
+    self.ctx.new_path()
+
+    self.ctx.set_matrix(self.llOriginMatrix)
+    path.drawto(self)
+
+    print 'clip'
+    self.ctx.clip()
+    self.ctx.stroke()
+    self.ctx.new_path()
     self.lastOperation=_Fill
 
 

@@ -75,8 +75,11 @@ class GState:
     
   def fonttm(self,reflectY=False):
     ttm = AffineTransform()
-    ttm.tx=self.path.cp.x
-    ttm.ty=self.path.cp.y
+
+    page_p = self.ptm.Tinv(self.path.cp)
+    ttm.tx = page_p.x
+    ttm.ty = page_p.y
+    
     ttm.rotate(self.fontangle*2*math.pi)
     ttm.dilate(self.fontsize)
     ttm.concat(self.fonteffect)

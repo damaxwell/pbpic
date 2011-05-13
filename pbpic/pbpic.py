@@ -20,7 +20,7 @@ functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setm
               'setfontangle', 'setfontcolor', 'setfonteffect',
               'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
               'lineto', 'moveto', 'rmoveto', 'rlineto', 'curveto', 'polygon', 'closepath', 'stroke', 'kstroke', 
-              'fill', 'kfill', 'scaleto', 'scale', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
+              'fill', 'kfill', 'clip', 'scaleto', 'scale', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'pagetranslate', 'pagerotate', 'pagescale',
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',

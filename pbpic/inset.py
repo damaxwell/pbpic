@@ -33,10 +33,10 @@ class Inset(Canvas):
       canvas.pagerotate(v.angle())
       if not origin is None:
         canvas.pagetranslate(-(origin[0]),-(origin[1]))
-
+      
       canvas.setctm(AffineTransform())
       
-      canvas.newpath()  
+      canvas.newpath()
       # FIXME: shouldn't we set the canvas gstate so that it matches what the inset had at the start of its life?
       for f in self.script:
         args=f[1]; kwargs=f[2]
