@@ -312,6 +312,8 @@ class Canvas:
   
   def setfontcolor(self,fontcolor):
     self.gstate.setfontcolor(fontcolor)
+  def fontcolor(self):
+    return self.gstate.fontcolor
 
   def show(self,s):
     self.gstate.font.showto(self,s)
@@ -410,11 +412,11 @@ class Canvas:
     except exception.StylePropertyNotFound:
       pass
 
-  def addpath(self,p,*args):
+  def addpath(self,p,*args,**kwargs):
     if callable(p):
-      p(self,*args)
+      p(self,*args,**kwargs)
     elif hasattr(p,'drawto'):
-      p.drawto(self)
+      p.drawto(self,*args,**kwargs)
     else:
       raise TypeError()
     
@@ -456,6 +458,15 @@ class Canvas:
         p = self.Tinv(p)
       x=p[0]; y=p[1]
     self.gstate.ctm.translate(x,y)
+
+  def window(self,oldRect,newRect):
+    hf = oldRect.width()/newRect.width()
+    vf = oldRect.height()/newRect.height()
+
+    self.translate( oldRect.ll() )
+    self.scale(hf,vf)
+    self.translate(-newRect.ll())
+    
 
   def rotate(self,theta):
     self.gstate.ctm.rotate(theta)

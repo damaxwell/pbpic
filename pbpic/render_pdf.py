@@ -105,7 +105,6 @@ class PDFRenderer:
     self.ctx.set_matrix(self.llOriginMatrix)
     path.drawto(self)
 
-    print 'clip'
     self.ctx.clip()
     self.ctx.stroke()
     self.ctx.new_path()

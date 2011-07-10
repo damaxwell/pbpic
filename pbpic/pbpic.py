@@ -8,8 +8,11 @@ from metric import pt, cm, inch, Polar, FPolar, DPolar, Point, Vector
 from color import RGBColor, GrayColor
 import color
 from inset import Inset
+from geometry import AffineTransform, BBox
 from style import Style, style, setstyle, stylesave, stylerestore
 import texinset
+from math import pi
+
 
 _canvas = None
 _finalcanvas = None
@@ -20,7 +23,7 @@ functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setm
               'setfontangle', 'setfontcolor', 'setfonteffect',
               'setcolor', 'setrgbcolor', 'setgray', 'path', 'newpath',
               'lineto', 'moveto', 'rmoveto', 'rlineto', 'curveto', 'polygon', 'closepath', 'stroke', 'kstroke', 
-              'fill', 'kfill', 'clip', 'scaleto', 'scale', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
+              'fill', 'kfill', 'clip', 'scaleto', 'scale', 'window', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'pagetranslate', 'pagerotate', 'pagescale',
               'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
@@ -94,7 +97,6 @@ def pbpend():
     bbox = _canvas._extents
     if bbox is None:
       bbox=_canvas.markedbox()
-    print 'setting bbox', bbox
     _finalcanvas.begin(bbox=bbox)
     _finalcanvas.draw(_canvas)
     _finalcanvas.end()

@@ -1,8 +1,10 @@
 from __future__ import division
 from style import updatefromstyle, Style
 from metric import Vector, Point
+from marks import Mark
 import misc 
 import math
+
 
 
 def stdarrowhead(canvas,W,H,theta,origin,v):
@@ -22,7 +24,7 @@ def stdarrowhead(canvas,W,H,theta,origin,v):
     canvas.rlineto(vp)
     canvas.closepath()
 
-class ArrowHead:
+class ArrowHead(Mark):
 
   @staticmethod
   def defaultStyle():
@@ -43,11 +45,11 @@ class ArrowHead:
       canvas.fill()
       canvas.setfillcolor(fc)
 
-class ArrowTo:
+class ArrowTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
-  def drawto(self,canvas,p):
-    p = Point(p[0],p[1])
+  def drawto(self,canvas,*args):
+    p = misc.toOnePoint(*args)
     v = p-canvas.currentpoint()
     dv = canvas.offset(-v,canvas.linewidth()*self.head.length)
     o = p+dv
@@ -56,11 +58,11 @@ class ArrowTo:
     canvas.moveto(o)
     self.head.drawto(canvas,v)
 
-class ArrowFromTo:
+class ArrowFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
-  def drawto(self,canvas,p):
-    p1 = Point(p[0],p[1])
+  def drawto(self,canvas,*args):
+    p1 = misc.toOnePoint(*args)
     p0 = canvas.currentpoint()
     v = p1-p0
     dv = canvas.offset(v,canvas.linewidth()*self.head.length)
@@ -73,7 +75,7 @@ class ArrowFromTo:
     canvas.moveto(q1)
     canvas.place(self.head,v)
 
-class ArrowCurveTo:
+class ArrowCurveTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
@@ -89,7 +91,7 @@ class ArrowCurveTo:
     canvas.moveto(q3)
     canvas.place(self.head,v)
 
-class ArrowCurveFromTo:
+class ArrowCurveFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
@@ -113,15 +115,17 @@ class ArrowCurveFromTo:
     canvas.moveto(q3)
     canvas.place(self.head,v)
 
-class SArrowTo:
+class SArrowTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   
-  def drawto(self,canvas,tip,sposition=0.5):
+  def drawto(self,canvas,tip,sposition=0.5,flip=False):
     p3 = misc.toOnePoint(tip)
     p0 = canvas.currentpoint()
     v = (p3-p0)
     vp = Vector(v[1],-v[0])
+    if flip:
+      vp = -1*vp
 
     l1=.1
     l2=.15

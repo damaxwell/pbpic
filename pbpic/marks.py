@@ -1,8 +1,17 @@
 from style import Style, updatefromstyle
 from metric import pt
 import paths
+from pbpic import getcanvas
 
-class Dot:
+class Mark:
+  
+  def drawto(self,canvas,*args,**kwargs):
+    pass
+    
+  def __call__(self,*args,**kwargs):
+    self.drawto(getcanvas(),*args,**kwargs)
+
+class Dot(Mark):
 
   @staticmethod
   def defaultStyle():

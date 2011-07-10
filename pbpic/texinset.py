@@ -5,6 +5,7 @@ import inset
 from tex.devicefont import FontTable
 from geometry import BBox
 from style import Style, style, updatefromstyle
+import color
 from metric import pt
 import userprefs
 import hashlib
@@ -61,7 +62,9 @@ class _DviCache:
     return dvi
 
   def save(self,command,texsource,dvi):
-    dviFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))+'.dvi'
+    r = random.Random()
+    r.seed(self.hashKey(command,texsource))
+    dviFileName = 'pbpic_'+(''.join(r.choice(string.ascii_uppercase + string.digits) for x in range(10)))+'.dvi'
     cacheFile = os.path.join(self.cachedir(),dviFileName)
     try:
       with open(cacheFile,'wb') as f:
@@ -102,14 +105,13 @@ class TexProcessor:
 
     if texFileName is None:
       texFileName = 'pbpic_'+(''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(10)))
-
+      
     basename = os.path.splitext(texFileName)[0]
     
     with FileSweeper([ basename+ext for ext in ['.aux','.log','.tex','.dvi']]):
       with open(basename+'.tex','wb') as f:
         f.write(body)
       command = '%s %s' % (self.command,texFileName)
-      print 'Running tex!'
       p = Popen(command,stderr=PIPE,stdout=PIPE,shell=True)
       (stdout,stderr) = p.communicate()
       if p.returncode == 0:
@@ -144,6 +146,7 @@ class DviToInset(tex.dvi.DviReader):
   def __init__(self,f):
     tex.dvi.DviReader.__init__(self,f)
     self.pages = []
+    self.color_stack=[]
     self.canvas = None
     self.fontTable = FontTable()
     self.bbox = BBox()
@@ -201,7 +204,24 @@ class DviToInset(tex.dvi.DviReader):
     self.canvas.setfont(self.currentDeviceFont)
 
   def special(self,x):
-    pass
+    xs = x.split()
+    if xs[0] == 'color':
+      cmd = xs[1]
+      if cmd == 'push':
+        colortype = xs[2]
+        if colortype == 'Black':
+          c = color.black
+        elif colortype == 'rgb':
+          comps = (float(comp_s) for comp_s in xs[3:])
+          c = color.RGBColor(*comps)
+        else:
+          raise Exception('unknown color in special %s' % x)
+        self.canvas.setfontcolor(c)
+        self.color_stack.append(c)
+      elif cmd == 'pop':
+        self.canvas.setfontcolor(self.color_stack.pop())
+      else:
+        msg("warning: unknown color special %s" % x)
 
   def preamble(self):
     # All dimensions get multiplied by scale to convert to Adobe points

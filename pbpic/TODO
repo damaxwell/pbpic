@@ -15,7 +15,7 @@ How do you specify the page size?  Right now you can give w/h in __init__ or w/h
 
 Vertical metrics for true type fonts
 
-
+Path cache should either not store a relative path or code getting a path from the cache should verify the file exists (and if not, try for real)
 
 Done: cache DVIs
 

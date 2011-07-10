@@ -78,6 +78,18 @@ def box(canvas,r):
   canvas.path() + (c.x+r,c.y-r) - (c.x+r,c.y+r) - (c.x-r,c.y+r) - (c.x-r,c.y-r) - 0
 
 
+def graph(canvas,f,x0,x1,N=200):
+  dx = float(x1-x0)/N
+  x=x0
+  y0 = f(x0)
+  if canvas.currentpointexists():
+    canvas.lineto(x,y0)
+  else:
+    canvas.moveto(x,y0)
+  for k in range(N):
+    x+=dx
+    canvas.lineto(x,f(x))
+
 def rect(canvas,w,h):
   """Adds a rectangle of width 'w' and height 'h' to the current path with its lower left corner at the current point (or at the
   origin if no currentpoint exists)"""
@@ -86,7 +98,6 @@ def rect(canvas,w,h):
   canvas.rlineto(w,0)
   canvas.rlineto(0,h)
   canvas.rlineto(-w,0)
-  canvas.closepath()
 
 def hlines(canvas,w,dy,N):
   """Adds a sequence of N horizontal lines of width w spaced dy between to the current path, starting at the currentpoint."""
@@ -96,7 +107,7 @@ def hlines(canvas,w,dy,N):
     c=Point(0,0)
 
   x0=c.x; y0=c.y
-  for k in range(N+1):
+  for k in range(N):
     canvas.moveto(x0,y0)
     canvas.rlineto(w,0)
     y0 += dy
@@ -109,7 +120,7 @@ def vlines(canvas,h,dx,M):
     c=Point(0,0)
 
   x0=c.x; y0=c.y
-  for k in range(M+1):
+  for k in range(M):
     canvas.moveto(x0,y0)
     canvas.rlineto(0,h)
     x0 += dx
@@ -119,9 +130,9 @@ def grid(canvas,bbox,N,M):
   dx = bbox.width()/N
   dy = bbox.height()/M
   canvas.moveto(bbox.ll())
-  hlines(canvas,bbox.width(),dy,M)
+  hlines(canvas,bbox.width(),dy,M+1)
   canvas.moveto(bbox.ll())
-  vlines(canvas,bbox.height(),dx,N)
+  vlines(canvas,bbox.height(),dx,N+1)
 
 
 def r(x0,x1):
@@ -129,7 +140,7 @@ def r(x0,x1):
   center = (x0+x1)/2.
   return random.gauss(center,l/6.)
 
-def potato(canvas,seed):
+def potato(canvas,seed,nodes=False):
   random.seed(seed)
   if canvas.currentpointexists():
     c = canvas.currentpoint()
@@ -150,13 +161,14 @@ def potato(canvas,seed):
 
   blob(canvas,p0,right,p1,up,p20,left,p21,left,p22,left,p3,down)
 
-  pts = [ p0, p1, p20, p21, p22, p3]
-  from metric import pt
-  for p in pts:
-    canvas.moveto(p)
-    with canvas.ctmsave():
-      canvas.scaleto(1*pt)
-      canvas.addpath(box,1)
+  if nodes:
+    pts = [ p0, p1, p20, p21, p22, p3]
+    from metric import pt
+    for p in pts:
+      canvas.moveto(p)
+      with canvas.ctmsave():
+        canvas.scaleto(1*pt)
+        canvas.addpath(box,1)
 
 def blob(canvas,*args):
   data = [ (args[2*k],args[2*k+1]) for k in range(int(len(args)/2)) ]

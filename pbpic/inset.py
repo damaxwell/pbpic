@@ -49,7 +49,8 @@ class Inset(Canvas):
                       'setctm',
                       'setfillcolor', 'setfillrule', 
                       'lineto', 'moveto', 'curveto', 'closepath', 
-                      'kstroke', 'kfill', 'stroke', 'fill', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 
+                      'rlineto', 'rmoveto', 
+                      'kstroke', 'kfill', 'stroke', 'fill', 'clip', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 
                       'setphysicalfont', 'setfontsize', 'setfontangle', 'setfontcolor', 'setfonteffect',
                       'pagetranslate', 'pagerotate',
                       'showglyphs', 'rotate' ]

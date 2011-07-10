@@ -45,10 +45,14 @@ class BBoxRenderer:
   def fill(self,path,gstate):
     self.stroke(path,gstate)
 
+  def clip(self,path,gstate):
+    pass
+
   def showglyphs(self,s,gstate,metrics):
     font = sysfont.findcachedfont(gstate.fontdescriptor)
 
     ttm = gstate.fonttm()
+    ptm = gstate.ptm
     ctm = self.ctm
 
     for k in xrange(len(s)):
@@ -56,11 +60,11 @@ class BBoxRenderer:
       gbox=BBox()
       for (cmd,coords) in gpath:
         if(cmd==Path.MOVETO): 
-          gbox.include(ctm.T(ttm.T(coords)))
+          gbox.include(ctm.T(ptm.T(ttm.T(coords))))
         elif(cmd==Path.LINETO):
-          gbox.include(ctm.T(ttm.T(coords)))
+          gbox.include(ctm.T(ptm.T(ttm.T(coords))))
         elif(cmd==Path.CURVETO):
-          for c in coords: gbox.include(ctm.T(ttm.T(c)))
+          for c in coords: gbox.include(ctm.T(ptm.T(ttm.T(c))))
       self._bbox.join(gbox)
       adv=metrics[k].advance
       ttm.translate(adv[0],adv[1])

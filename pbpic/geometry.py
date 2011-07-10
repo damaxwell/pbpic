@@ -284,7 +284,6 @@ class Path:
   def apply(self,a):
     for k in range(len(self.coords)):
       coords = self.coords[k]
-      print coords
       if isinstance(coords,list):
         self.coords[k]=(a.T(c) for c in coords)
       else:
@@ -418,6 +417,11 @@ class BBox:
     cbox.xmin = self.xmin
     cbox.ymin = self.ymin
     return cbox
+
+  def drawto(self,canvas):
+    canvas.path() + (self.xmin,self.ymin) - (self.xmax,self.ymin) \
+                    - (self.xmax,self.ymax) - (self.xmin,self.ymax)
+    canvas.closepath()
 
   def path(self):
     p=Path()
