@@ -32,7 +32,7 @@ for f in functions:
   filled_template = template % (f,f)
   exec filled_template in globals()
 
-_rendertypes={'pdf':('render_pdf','PDFRenderer')}
+_rendertypes={'pdf':('render_pdf','PDFRenderer'), 'eps':('render_eps','EPSRenderer')}
 
 def getcanvas():
   global _canvas

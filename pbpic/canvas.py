@@ -94,7 +94,7 @@ class BBoxMarkedPoints(MarkedPoints):
     cb = self.bboxcallbacks.get(markname)
     if not cb is None:
       if self._bbox is None:
-        raise PBPicException('No bounding box available to computed named point %s' % markname) 
+        raise exception.PBPicException('No bounding box available to computed named point "%s"' % markname) 
       return self._transform(PagePoint(cb(self._bbox)))
     
     raise KeyError(markname)
@@ -133,7 +133,7 @@ class Canvas:
           w = w.ptValue()
         if isinstance(h,MeasuredLength):
           h = h.ptValue()
-        bbox = BBox(0,0,w,h)
+        bbox = BBox( (0,0), (w,h) )
     self._extents = bbox
 
   def begin(self,w=None,h=None,bbox=None,renderer=None):
@@ -365,23 +365,37 @@ class Canvas:
   def closepath(self):
     self.gstate.path.close()
 
-  def stroke(self):
-    if self.renderer:
-      self.renderer.stroke(self.gstate.path,self.gstate)
+  def fillstroke(self,fillcolor=None,strokecolor=None):
+    self.kfill(fillcolor)
+    self.stroke(strokecolor)
+
+  def stroke(self,color=None):
+    self.kstroke(color=color)
     self.gstate.path.clear()
 
-  def kstroke(self):
+  def kstroke(self,color=None):
     if self.renderer:
-      self.renderer.stroke(self.gstate.path,self.gstate)
+      if not color is None:
+        oldcolor = self.gstate.strokecolor
+        self.gstate.setstrokecolor(color)
+        self.renderer.stroke(self.gstate.path,self.gstate)
+        self.gstate.setstrokecolor(oldcolor)
+      else:
+        self.renderer.stroke(self.gstate.path,self.gstate)
 
-  def fill(self):
-    if self.renderer:
-      self.renderer.fill(self.gstate.path,self.gstate)
+  def fill(self,color=None):
+    self.kfill(color=color)
     self.gstate.path.clear()
 
-  def kfill(self):
+  def kfill(self,color=None):
     if self.renderer:
-      self.renderer.fill(self.gstate.path,self.gstate)
+      if not color is None:
+        oldcolor = self.gstate.fillcolor
+        self.gstate.setfillcolor(color)
+        self.renderer.fill(self.gstate.path,self.gstate)
+        self.gstate.setfillcolor(oldcolor)
+      else:
+        self.renderer.fill(self.gstate.path,self.gstate)
 
   def clip(self):
     if self.renderer:

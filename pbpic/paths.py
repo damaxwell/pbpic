@@ -125,6 +125,18 @@ def vlines(canvas,h,dx,M):
     canvas.rlineto(0,h)
     x0 += dx
 
+def polylines(canvas,*args):
+  if len(args) == 2:
+    x=args[0]
+    y=args[1]
+  else:
+    x=args[0][:,0]
+    y=args[0][:,1]
+  
+  canvas.moveto(x[0],y[0])
+  for k in range(1,len(x)):
+    canvas.lineto(x[k],y[k])
+
 def grid(canvas,bbox,N,M):
   """Adds a grid of NxM (horzontal x vertical) cells filling the box bbox to the current path."""
   dx = bbox.width()/N

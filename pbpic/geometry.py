@@ -292,21 +292,13 @@ class Path:
 class BBox:
   def __init__(self,*args):
     self.xmin = None
+
     if len(args) == 0:
+      # empty box
       return
 
-    if len(args) == 1:
-      bbox = args[0]
-    else:
-      bbox = args
-
-
-    if len(bbox) != 4:
-      raise ValueError('A BBox must be constructed with nothing, a list [x0,y0,x1,y1], or four floats.\n Received %s.' % args)
-    # we have x0, y0, x1, y1
-    self.include(bbox[0],bbox[1])
-    self.include(bbox[2],bbox[3])
-
+    for p in args:
+      self.include(p)
 
   def __repr__(self):
     if self.xmin is None:
