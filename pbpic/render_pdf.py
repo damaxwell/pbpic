@@ -1,6 +1,6 @@
 import cairo
 import logging 
-from metric import MeasuredLength, Point
+from geometry import Point
 import math
 from color import GrayColor
 
@@ -14,9 +14,9 @@ _Stroke = 1
 _Fill = 2
 _Font = 3
 
-class PDFRenderer:
-  def __init__(self,filename):
-    self.surface = cairo.PDFSurface (filename, 0,0)
+class CairoRenderer:
+  def __init__(self,surface):
+    self.surface = 
     self.lastOperation = None
 
   def begin(self,extents):
@@ -158,8 +158,6 @@ class PDFRenderer:
 
 
   def setlinewidth(self,w):
-    if isinstance(w,MeasuredLength):
-      w=w.ptValue()
     self.ctx.set_line_width(w)
 
   def setlinecolor(self,c):
@@ -263,3 +261,12 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
     face = cairo_ctx.get_font_face ()
 
     return face
+
+
+class PDFRenderer(CairoRenderer):
+  def __init__(self,filename):
+    CairoRenderer.__init__(self,cairo.PDFSurface (filename, 0,0))
+
+class PNGRenderer(CairoRenderer):
+  def __init__(self,filename):
+    CairoRenderer.__init__(self,cairo.PNGSurface (filename, 0,0))

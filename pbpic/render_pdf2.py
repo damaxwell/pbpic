@@ -14,9 +14,22 @@ _Stroke = 1
 _Fill = 2
 _Font = 3
 
-class EPSRenderer:
-  def __init__(self,filename):
-    self.surface = cairo.PSSurface (filename, 0,0)
+class RState:
+  def __init__(self,other):
+    self.lastOperation = other.lastOperation
+    self.color = other.color
+  
+  def restore(self,renderer):
+    renderer.lastOperation = self.lastOperation
+    renderer.color = self.color
+
+  def clone(self):
+    return RState(self)
+    
+
+class CairoRenderer:
+  def __init__(self,surface):
+    self.surface = surface
     self.lastOperation = None
 
   def begin(self,extents):
@@ -27,15 +40,22 @@ class EPSRenderer:
     self.tx = ll[0]
     self.ty = h + ll[1]
     self.ctx = cairo.Context (self.surface)
+
+    # Cairo CTM for its default coordinates with
+    # origin at the upper left and positive y
+    # pointing down.
     self.defaultMatrix = self.ctx.get_matrix()
+  
+    # A Cairo CTM with the origin at the lower left
+    # and positive y pointing up.
     self.llOriginMatrix = self.ctx.get_matrix()
     self.llOriginMatrix.scale(1,-1)
     self.llOriginMatrix.translate(0,-self.ty)
 
-    self.setlinewidth(1)
-    self.linecolor = GrayColor(1)
-    self.fillcolor = GrayColor(1)
-    self.ctx.set_font_size(1.)
+    # self.setlinewidth(1)
+    # self.linecolor = GrayColor(1)
+    # self.fillcolor = GrayColor(1)
+    # self.ctx.set_font_size(1.)
 
     self.gstack = []
 
@@ -47,88 +67,90 @@ class EPSRenderer:
     del self.ctx
     self.ctx = None
 
+
   def gsave(self):
-    self.gstack.append((self.lastOperation,self.color))
+    self.gstack.append(RState(self))
     self.ctx.save()
 
   def grestore(self):
-    (self.lastOperation,self.color) = self.gstack.pop()
+    self.gstack.pop().restore(self)
     self.ctx.restore()
+  
 
   def stroke(self,path,gstate):
-    # if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
-    #   pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-    #   self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
 
     gstate.updatestroke(self)    
+    
     if self.color != _Stroke:
       gstate.linecolor.renderto(self)
       self.color = _Stroke
     
-    # FIXME: is the newpath right?
+    # The path will be expressed in page coordinates, which is equivalent
+    # to our llOriginMatrix
+    self.ctx.set_matrix(self.llOriginMatrix)        
+
+    # Draw the path in page coordinates.
     self.ctx.new_path()
-    
-    self.ctx.set_matrix(self.llOriginMatrix)
     path.drawto(self)
 
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-    self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)        
+    # # Before stroking, set to pen coordinates.
+    penToPage=cairo.Matrix(*gstate.linewidth.tm.asTuple())
+    self.ctx.set_matrix(penToPage*self.llOriginMatrix)        
+    
     self.ctx.stroke()
 
     self.lastOperation=_Stroke
-  
-  def fill(self,path,gstate):
-    # if (self.lastOperation != _Stroke) or (self.lastOperation != _Fill):
-    #   pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())
-    #   self.ctx.set_matrix(pageToDevice*self.llOriginMatrix)
 
+  def fill(self,path,gstate):
+  
     gstate.updatefill(self)    
     if self.color != _Fill:
       gstate.fillcolor.renderto(self)
       self.color = _Fill
-
+  
     self.ctx.new_path()
-
+  
     self.ctx.set_matrix(self.llOriginMatrix)
     path.drawto(self)
-
+  
     self.ctx.fill()
     self.lastOperation=_Fill
 
-
-  def clip(self,path,gstate):
-
-    gstate.updatefill(self)    
-
-    self.ctx.new_path()
-
-    self.ctx.set_matrix(self.llOriginMatrix)
-    path.drawto(self)
-
-    self.ctx.clip()
-    self.ctx.stroke()
-    self.ctx.new_path()
-    self.lastOperation=_Fill
-
-
-  def showglyphs(self,s,gstate,metrics):
-
-    tm = gstate.ptm.copy()
-    tm.concat(gstate.fonttm(reflectY=True))
-    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
-
-    gstate.updatefont(self)
-    if self.color != _Font:
-      gstate.fontcolor.renderto(self)
-      self.color = _Font
-
-    p = Point(0,0)
-    g = len(s)*[None]
-    for k in xrange(len(s)):
-      g[k] = (s[k],p.x,p.y)
-      p = p + metrics[k].advance
-    self.ctx.show_glyphs(g)
-    self.lastOperation = _Font
+  # 
+  # 
+  # def clip(self,path,gstate):
+  # 
+  #   gstate.updatefill(self)    
+  # 
+  #   self.ctx.new_path()
+  # 
+  #   self.ctx.set_matrix(self.llOriginMatrix)
+  #   path.drawto(self)
+  # 
+  #   self.ctx.clip()
+  #   self.ctx.stroke()
+  #   self.ctx.new_path()
+  #   self.lastOperation=_Fill
+  # 
+  # 
+  # def showglyphs(self,s,gstate,metrics):
+  # 
+  #   tm = gstate.ptm.copy()
+  #   tm.concat(gstate.fonttm(reflectY=True))
+  #   self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
+  # 
+  #   gstate.updatefont(self)
+  #   if self.color != _Font:
+  #     gstate.fontcolor.renderto(self)
+  #     self.color = _Font
+  # 
+  #   p = Point(0,0)
+  #   g = len(s)*[None]
+  #   for k in xrange(len(s)):
+  #     g[k] = (s[k],p.x,p.y)
+  #     p = p + metrics[k].advance
+  #   self.ctx.show_glyphs(g)
+  #   self.lastOperation = _Font
 
 
   def moveto(self,p):
@@ -150,15 +172,22 @@ class EPSRenderer:
 
 
 
+
+
+
+
+
+
+
+
   def setrgbcolor(self,r,g,b):
     self.ctx.set_source_rgb(r,g,b)
     
   def setgray(self,g):
     self.ctx.set_source_rgb(1.-g,1.-g,1.-g)
 
-
   def setlinewidth(self,w):
-    self.ctx.set_line_width(w)
+    self.ctx.set_line_width(float(w))
 
   def setlinecolor(self,c):
     if self.color == _Stroke:
@@ -176,15 +205,12 @@ class EPSRenderer:
   def setdash(self,dash,phase):
     self.ctx.set_dash(dash,phase)
 
-
-
   def setfillcolor(self,c):
     if self.color == _Fill:
       self.color = _None
 
   def setfillrule(self,fillrule):
     self.ctx.set_fill_rule(fill_rule_to_cairo[fillrule])
-
 
   def setfont(self,fontdescriptor):
     ftFont = ftFontForDescriptor(fontdescriptor)
@@ -261,3 +287,65 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
     face = cairo_ctx.get_font_face ()
 
     return face
+
+class PDFRenderer(CairoRenderer):
+  def __init__(self,filename):
+    CairoRenderer.__init__(cairo.PDFSurface (filename, 0,0))
+
+
+class PNGRenderer(CairoRenderer):
+  def __init__(self,filename):
+    self.filename = filename
+    CairoRenderer.__init__(self,None)
+
+  def begin(self,extents):
+    w=extents.width()
+    h=extents.height()
+    
+    W=4*int(w); H=4*int(h)
+    self.surface = cairo.ImageSurface(cairo.FORMAT_RGB24,W,H)
+    
+    # set_size(w,h)
+    ll = extents.ll()
+    self.tx = ll[0]
+    self.ty = h + ll[1]
+    self.ctx = cairo.Context (self.surface)
+
+    self.ctx.set_source_rgb(1,1,1)
+    self.ctx.move_to(0,0)
+    self.ctx.line_to(W,0)
+    self.ctx.line_to(W,H)
+    self.ctx.line_to(0,H)
+    self.ctx.close_path()
+    self.ctx.fill()
+    self.ctx.set_source_rgb(0,0,0)
+
+
+
+    # Cairo CTM for its default coordinates with
+    # origin at the upper left and positive y
+    # pointing down.
+    self.defaultMatrix = self.ctx.get_matrix()
+    self.defaultMatrix.scale(W/w,H/h)
+
+    # A Cairo CTM with the origin at the lower left
+    # and positive y pointing up.
+    self.llOriginMatrix = self.ctx.get_matrix()
+    self.llOriginMatrix.scale(W/w,H/h)
+    self.llOriginMatrix.scale(1,-1)
+    self.llOriginMatrix.translate(0,-self.ty)
+
+    # self.setlinewidth(1)
+    # self.linecolor = GrayColor(1)
+    # self.fillcolor = GrayColor(1)
+    # self.ctx.set_font_size(1.)
+
+    self.gstack = []
+
+    self.lastOperation = _None
+    self.color = _None
+
+
+  def end(self):
+    self.surface.write_to_png(self.filename)
+    CairoRenderer.end(self)

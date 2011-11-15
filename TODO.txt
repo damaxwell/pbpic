@@ -1,1 +1,3 @@
 Place should make sure that gsave/grestore match and that you can't grestore past the initial point
+
+get rid of default currentpoints if a default doesn't make sense.

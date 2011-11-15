@@ -4,7 +4,8 @@ from gstate import GState
 from color import GrayColor, RGBColor
 import pbpfont
 import sysfont
-from metric import Point, Vector, PagePoint, MeasuredLength
+from geometry import Point, Vector
+from metric import PagePoint, PageVector, Length
 from render_bbox import BBoxRenderer
 import math
 import os
@@ -129,10 +130,12 @@ class Canvas:
           raise ValueError("Cannot set canvas size from just a height specifiation; a width is needed.")
         elif h is None:
           raise ValueError("Cannot set canvas size from just a width specifiation; a height is needed.")
-        if isinstance(w,MeasuredLength):
-          w = w.ptValue()
-        if isinstance(h,MeasuredLength):
-          h = h.ptValue()
+        if isinstance(w,Length):
+          dx = Vector(1,0)
+          w = w.pagelength(dx)
+        if isinstance(h,Length):
+          dy = Vector(0,1)
+          h = h.pagelength(dy)
         bbox = BBox( (0,0), (w,h) )
     self._extents = bbox
 
@@ -166,26 +169,33 @@ class Canvas:
     return self.gstate.ptm.T(self.gstate.ctm.T(x,y))
 
   def toOneVector(self,*args):
-    if len(args) == 2:
-        x = args[0]; y=args[1]
-    else:
-      x = args[0][0]; y=args[0][1]
+    if len(args) == 1:
+      v=args[0]
+      if isinstance(v,PageVector):
+        return v
+      return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
+    elif len(args) == 2:
+      x = args[0]; y=args[1]
 
-    if isvectorlike(x):
-      v = self.gstate.ctm.Tv(self.offset(args[0],args[1]))
-    else:      
-      if isinstance(x,MeasuredLength):
-        v0 = self.gstate.ctm.Tv(self.offset(Vector(1,0),x))
+      x0 = 0; y0 = 0;
+      dx = self.gstate.ctm.Tv(Vector(1,0))
+      dy = self.gstate.ctm.Tv(Vector(0,1))
+
+      if isinstance(x,Length):
+        vx = x.rescale(dx)
+        x0 += vx[0]; y0 += vx[1]
       else:
-        v0 = self.gstate.ctm.Tv((x,0))
+        x0 += dx[0]*x; y0 += dx[1]*x; 
 
-      if isinstance(y,MeasuredLength):
-        v1 = self.gstate.ctm.Tv(self.offset(Vector(0,1),y))
+      if isinstance(y,Length):
+        vy = y.rescale(dy)
+        x0 += vy[0]; y0 += vy[1]
       else:
-        v1 = self.gstate.ctm.Tv((0,y))        
-      v = v0+v1
+        x0 += dy[0]*y; y0 += dy[1]*y;
 
-    return self.gstate.ptm.Tv(v)
+      return self.gstate.ptm.Tv(Vector(x0,y0))
+    
+    raise ValueError()
 
   def pagemark(self,name):
     return self.markedpoints[name]
@@ -219,7 +229,12 @@ class Canvas:
     self.gstate.ctm = ctm.copy()
 
   def setlinewidth(self,w):
+    if isinstance(w,Length):
+      dx = self.gstate.ctm.Tv(Vector(1,0))
+      w = w.pagelength(dx)
     self.gstate.setlinewidth(w)
+
+
   def linewidth(self):
     return self.gstate.linewidth
 
@@ -302,6 +317,9 @@ class Canvas:
     self.gstate.setfont(font)
 
   def setfontsize(self,size):
+    if isinstance(size,Length):
+      dx = self.gstate.ctm.Tv(Vector(1,0))
+      size=size.pagelength(dx)
     self.gstate.setfontsize(size)
 
   def setfontangle(self,angle):
@@ -355,13 +373,6 @@ class Canvas:
       raise ValueError()
     self.gstate.path.curveto(q[0],q[1],q[2])
 
-  def polygon(self,pts):
-    if len(pts)>0:
-      self.moveto(pts[0])
-    for p in pts[1:]:
-      self.lineto(p)
-    self.closepath()
-
   def closepath(self):
     self.gstate.path.close()
 
@@ -402,7 +413,7 @@ class Canvas:
       self.renderer.clip(self.gstate.path,self.gstate)
     self.gstate.clip(self.gstate.path)
     self.gstate.path.clear()
-    
+
 
   def applystyle(self,s=None):
     if s is None:
@@ -447,10 +458,15 @@ class Canvas:
     adv = self.gstate.fonttm().Tv(adv)
     self.gstate.path.rmoveto(adv)
 
+
+
+ # Commands that manipulate the current transformation matrix.
+
   def scaleto(self,size):
-    if isinstance(size,MeasuredLength):
+    if isinstance(size,Length):
+      dx = self.gstate.ctm.Tv(Vector(1,0))
       self.gstate.ctm.makeortho()
-      self.gstate.ctm.dilate(size.ptValue())
+      self.gstate.ctm.dilate(size.pagelength(dx))
     else:
       self.gstate.ctm.dilate(size)
 
@@ -473,6 +489,15 @@ class Canvas:
       x=p[0]; y=p[1]
     self.gstate.ctm.translate(x,y)
 
+  def rrotate(self,theta):
+    self.gstate.ctm.rrotate(theta)
+
+  def rotate(self,ftheta):
+    self.gstate.ctm.rrotate(2*math.pi*ftheta)
+
+  def frotate(self,ftheta):
+    self.gstate.ctm.rrotate(2*math.pi*ftheta)
+
   def window(self,oldRect,newRect):
     hf = oldRect.width()/newRect.width()
     vf = oldRect.height()/newRect.height()
@@ -482,11 +507,9 @@ class Canvas:
     self.translate(-newRect.ll())
     
 
-  def rotate(self,theta):
-    self.gstate.ctm.rotate(theta)
 
-  def frotate(self,ftheta):
-    self.rotate(2*math.pi*ftheta)
+
+  # Methods that manipulate the ptm?????
 
   def pagetranslate(self,*args):
     if len(args) == 2:
@@ -502,24 +525,8 @@ class Canvas:
   def pagescale(self,sx,sy):
     self.gstate.ptm.scale(sx,sy)
 
-  def offset(self,v,len):
-    if not isinstance(v,Vector):
-      v=Vector(v)
-    return v*(len.ptValue()/self.gstate.ctm.Tv(v).length())    
 
-  def T(self,p):
-    q = self.gstate.ctm.T(p)
-    return self.gstate.ptm.T(q)
 
-  def Tinv(self,q):
-    p = self.gstate.ctm.Tinv(q)
-    return self.gstate.ptm.Tinv(p)
-
-  def Tv(self,v):
-    return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
-
-  def Tvinv(self,w):
-    return self.gstate.ptm.Tv(self.gstate.ctm.Tvinv(w))
 
   def draw(self,o,*args,**kwargs):
     self.place(o,*args,**kwargs)
@@ -549,6 +556,9 @@ class Canvas:
       self.markedpoints._addpoint(name,mp)
 
 
+
+  # Methods that save/restore some or all of the graphics state.
+
   def gsave(self):
     self.gstack.append(self.gstate.copy())
     if not self.renderer is None:
@@ -564,6 +574,34 @@ class Canvas:
 
   def ctmsave(self):
     return CTMRestorer(self)
+
+
+  # Methods that transform points and vectors between
+  # user and page coordinates.
+
+  def T(self,p):
+    q = self.gstate.ctm.T(p)
+    return self.gstate.ptm.T(q)
+
+  def Tinv(self,q):
+    p = self.gstate.ctm.Tinv(q)
+    return self.gstate.ptm.Tinv(p)
+
+  def Tv(self,v):
+    return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
+
+  def Tvinv(self,w):
+    return self.gstate.ptm.Tv(self.gstate.ctm.Tvinv(w))
+
+  def rescale(self,v,length):
+    """ Given a vector :v: in user coordinates, returns a parallel vector
+    with length :length:. If :length: is a number, the length is specified
+    in user coordinates.  Otherwise it must be a Length and the new Length is
+    specified in the Length's coordinate system."""
+    if isinstance(length,Length):
+      pv = self.gstate.ctm.Tv(v)
+      return v * (length.pagelength(pv)/pv.length() )
+    return v * (length/v.length())
 
 
 class PathBuilder:
@@ -602,26 +640,3 @@ class CTMRestorer:
   def __exit__(self,exc_type, exc_value, traceback):
     self.canvas.setctm(self.ctm)
     return False
-
-
-  # 
-  # def Tv(self,h,v):
-  #   return self.gstate.ctm.Tv(toOnePoint(*args))
-  # 
-  # def stroke(self):
-  #   self.actions.append(Stroke(deepcopy(self.gstate.path)))
-  #   self.gstate.path = Path()
-  # 
-  # def tmoveto(self,x,y):
-  #   self.actions.append(TMoveto(*self.T(x,y)))
-  # 
-  # def setfont(self,font, size):
-  #   self.gstate.font = font
-  #   self.actions.append(SetFont(font,size))
-  # 
-  # def show(self,s):
-  #   self.actions.append(Show(s))
-  # 
-  # def showglyph(self,glyphName,x,y):
-  #   self.actions.append(ShowGlyph(glyphName,*self.T(x,y)))
-  # 

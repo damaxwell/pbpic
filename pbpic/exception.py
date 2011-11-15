@@ -13,3 +13,5 @@ class StylePropertyNotFound(PBPicException):
   def __init__(self,styleName):
     PBPicException.__init__(self,'Style %s not found' % styleName)
     
+class NoCurrentPoint(PBPicException):
+  pass

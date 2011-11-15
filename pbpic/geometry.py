@@ -1,7 +1,132 @@
 from __future__ import division
-from misc import toOnePoint, toThreePoints
-from metric import Point, Vector
 import math
+
+# TODO: make Point immutable
+class Point:
+  def __init__(self, x=0,y=0):
+    self.x=x
+    self.y=y
+
+  def __add__(self,l):
+    return Point(self.x+l[0],self.y+l[1])
+
+  def __len__(self):
+    return 2
+
+  def __sub__(self,l):
+    return Vector(self.x-l[0],self.y-l[1])
+
+  def __neg__(self):
+    return Point(-self.x,-self.y)
+  
+  def __repr__(self):
+    return 'Point (%g,%g)' % (self.x,self.y)
+  
+  def __getitem__(self,i):
+    if i==0:
+      return self.x
+    if i==1:
+      return self.y
+    raise IndexError()
+    
+  def copy(self):
+    return Point(self.x,self.y)
+
+class Vector:
+  """
+  Represents a vector in physical space.
+  """
+  def __init__(self, x=0,y=0):
+    self.x=x
+    self.y=y
+
+  def value(self):
+    return [self.x,self.y]
+    
+  def length(self):
+    return Length(math.sqrt(self.x*self.x+self.y*self.y))
+  
+  def __add__(self,l):
+    return Vector(self.x+l.x,self.y+l.y)
+  
+  def __sub__(self,l):
+    return Vector(self.x-l.x,self.y-l.y)
+  
+  def __repr__(self):
+    return 'Vector (%g,%g)' % (self.x,self.y)
+
+  def __len__(self):
+    return 2
+  
+  def __getitem__(self,i):
+    if i==0:
+      return self.x
+    if i==1:
+      return self.y
+    raise IndexError()
+
+  def __mul__(self,s):
+    return Vector(self.x*s,self.y*s)
+
+  def __rmul__(self,s):
+    return Vector(self.x*s,self.y*s)
+
+  def __div__(self,s):
+    return Vector(self.x/s,self.y/s)
+
+  def __truediv__(self,s):
+    return Vector(self.x/s,self.y/s)
+
+  def __neg__(self):
+    return Vector(-self.x,-self.y)
+
+  def angle(self):
+    return math.atan2(self.y,self.x)
+    
+  def fangle(self):
+    return self.angle()/(2*math.pi)
+  
+  def dangle(self):
+    return self.fangle()*360
+
+  def length(self):
+    return math.sqrt(self.x*self.x+self.y*self.y)
+
+  def unitvector(self):
+    l=self.length()
+    return Vector(self.x/l,self.y/l)
+
+class Polar(Vector):
+  def __init__(self,r,theta):
+    Vector.__init__(self,r*math.cos(2*math.pi*ftheta),r*math.sin(2*math.pi*ftheta))
+
+class RPolar(Vector):
+  def __init__(self,r,theta):
+    Vector.__init__(self,r*math.cos(theta),r*math.sin(theta))
+
+class DPolar(Vector):
+  def __init__(self,r,dtheta):
+    Vector.__init__(self,r*math.cos(2*math.pi*dtheta/360.),r*math.sin(2*math.pi*dtheta/360.))
+
+def pToPoint(p):
+  if isinstance(p,Point):# or isinstance(p,PagePoint):
+    return p
+  return Point(p[0],p[1])
+
+def toOnePoint(*args):
+  if len(args) == 2:
+    return Point(args[0],args[1])
+  if len(args) != 1:
+    raise ValueError()
+  return pToPoint(args[0])
+
+def toThreePoints(*args):
+  if len(args) == 6:
+    return (Point(args[0],args[1]),Point(args[2],args[3]),Point(args[4],args[5]))
+  if len(args) != 3:
+    raise ValueError()
+  return [ pToPoint(p) for p in args]
+
 
 class AffineTransform:
   def __init__(self, initial=None):
@@ -26,7 +151,7 @@ class AffineTransform:
   def __eq__(self,rhs):
     if not isinstance(rhs,AffineTransform):
       return False
-    return (self.a==rhs.a) and (self.b==rhs.b) and (self.c==rhs.c) and (self.d==rhs.d)
+    return (self.a==rhs.a) and (self.b==rhs.b) and (self.c==rhs.c) and (self.d==rhs.d) and (self.tx==rhs.tx) and (self.ty==rhs.ty)
 
   def __neq__(self,rhs):
     return not self.__eq__(rhs)
@@ -35,6 +160,11 @@ class AffineTransform:
     copy=AffineTransform()
     copy.__dict__.update(self.__dict__)
     return copy
+
+  def orientation(self):
+    if self.det() < 0:
+      return -1
+    return 1
 
   def inverse(self):
     inv = AffineTransform()
@@ -80,12 +210,22 @@ class AffineTransform:
     det = self.a*self.d-self.b*self.c
     return Point((self.d*x-self.c*y)/det,(self.a*y-self.b*x)/det)
 
-  def Tv(self, V):
-    h=V[0]; v=V[1]
+  def Tv(self, *args):
+    if len(args) == 2:
+      h = args[0]; v=args[1]
+    elif len(args) == 1:
+      p = args[0]
+      h=p[0]; v=p[1]
+    
     return Vector(self.a*h+self.c*v, self.b*h+self.d*v)
 
-  def Tvinv(self,V):
-    h=V[0]; v=V[1]
+  def Tvinv(self,*args):
+    if len(args) == 2:
+      h = args[0]; v=args[1]
+    elif len(args) == 1:
+      p = args[0]
+      h=p[0]; v=p[1]
+
     det = self.a*self.d-self.b*self.c
     return Vector((self.d*h-self.c*v)/det, (self.a*v-self.b*h)/det)
 
@@ -103,6 +243,9 @@ class AffineTransform:
     self.ty = self.b*tx+self.d*ty+self.ty
 
   def rotate( self, theta):
+    self.rrotate(2*math.pi*theta)
+
+  def rrotate( self, theta):
     ct = math.cos(theta)
     st = math.sin(theta)
     a=self.a; b=self.b; c=self.c; d=self.d
@@ -110,6 +253,9 @@ class AffineTransform:
     self.b =  b*ct + d*st
     self.c = -a*st + c*ct
     self.d = -b*st + d*ct
+
+  def origin(self):
+    return Point(self.tx,self.ty)
 
   def det(self):
     return self.a*self.d-self.b*self.c

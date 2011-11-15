@@ -2,6 +2,7 @@ import os, random, string, re, cStringIO
 from subprocess import Popen, PIPE
 import tex.dvi
 import inset
+from misc import FileSweeper
 from tex.devicefont import FontTable
 from geometry import BBox
 from style import Style, style, updatefromstyle
@@ -10,25 +11,6 @@ from metric import pt
 import userprefs
 import hashlib
 
-class FileSweeper:
-  def __init__(self,paths):
-    self.paths = paths
-  def __enter__(self):
-    pass
-    
-  def release(self,path):
-    while True:
-      try:
-        self.paths.remove(path)
-      except ValueError:
-        break
-
-  def __exit__(self,exc_type, exc_value, traceback):
-    for p in self.paths:
-      try:
-        os.remove(p)
-      except:
-        pass
 
 
 class _DviCache:

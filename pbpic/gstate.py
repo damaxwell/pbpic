@@ -1,11 +1,15 @@
 from __future__ import division
-from geometry import Path, AffineTransform
-from metric import Point,pt,MeasuredLength
+from geometry import Point, Path, AffineTransform
+from metric import pt, Length
 from color import GrayColor
 import math
 import copy
 
 nodash = ([],0)
+
+kLineCap = ['square', 'butt', 'round']
+kFillRule = ['evenodd', 'winding']
+kLineJoin = ['bevel','miter','round']
 
 class GState:
   def __init__(self,init=True):
@@ -44,6 +48,8 @@ class GState:
     self.fillpending = { GState.updatefillcolor:True, GState.updatefillrule:True }
     self.fontpending = { GState.updatefontdescriptor:True, GState.updatefontcolor:True, GState.updatefontmatrix:True }
 
+  def setnew(self):
+
   def copystyle(self,other):
     other.setlinewidth(self.linewidth)
     other.setlinecolor(self.linecolor)
@@ -66,6 +72,10 @@ class GState:
     copy.path=self.path.copy()
     copy.ctm=self.ctm.copy()
     copy.ptm=self.ptm.copy()
+    if isinstance(self.linewidth,Length):
+      copy.linewidth=self.linewidth.copy()
+    else:
+      copy.linewidth = self.linewidth
     copy.fonteffect=self.fonteffect.copy()
     copy.strokepending=self.strokepending.copy()
     copy.fillpending=self.fillpending.copy()
@@ -80,7 +90,7 @@ class GState:
     ttm.tx = page_p.x
     ttm.ty = page_p.y
     
-    ttm.rotate(self.fontangle*2*math.pi)
+    ttm.rotate(self.fontangle)
     ttm.dilate(self.fontsize)
     ttm.concat(self.fonteffect)
     if reflectY:
@@ -89,7 +99,7 @@ class GState:
 
   def setlinewidth(self,w):
     if self.linewidth == w: return
-    self.linewidth=w
+    self.linewidth = w
     self.strokepending[GState.updatelinewidth] = True
 
   def setlinecolor(self,c):
@@ -99,11 +109,19 @@ class GState:
 
   def setlinecap(self,cap):
     if self.linecap == cap: return
+    try:
+      kLineCap.index(cap)
+    except ValueError:
+      raise ValueError("Bad linecap '%s': pick one of %s" %(cap,kLineCap) )
     self.linecap=cap
     self.strokepending[GState.updatelinecap] = True
 
   def setlinejoin(self,join):
     if self.linejoin == join: return
+    try:
+      kLineJoin.index(join)
+    except ValueError:
+      raise ValueError("Bad linejoin '%s': pick one of %s" %(join,kLineJoin) )
     self.linejoin = join
     self.strokepending[GState.updatelinejoin] = True
 
@@ -124,6 +142,10 @@ class GState:
 
   def setfillrule(self,r):
     if self.fillrule == r: return
+    try:
+      kFillRule.index(r)
+    except ValueError:
+      raise ValueError("Bad fillrule '%s': pick one of %s" %(r,kFillRule) )
     self.fillrule=r
     self.fillpending[GState.updatefillrule] = True
     
@@ -134,8 +156,6 @@ class GState:
     self.fontpending[GState.updatefontdescriptor] = True
 
   def setfontsize(self,fontsize):
-    if isinstance(fontsize,MeasuredLength):
-      fontsize=fontsize.ptValue()
     if fontsize == self.fontsize:
       return
     self.fontsize=fontsize
@@ -201,15 +221,11 @@ class GState:
   def updatedash(self,renderer):
     renderer.setdash(*self.dash)
 
-
-
   def updatefillcolor(self,renderer):
     renderer.setfillcolor(self.fillcolor)
 
   def updatefillrule(self,renderer):
     renderer.setfillrule(self.fillrule)
-
-
 
   def updatefontdescriptor(self,renderer):
     renderer.setfont(self.fontdescriptor)

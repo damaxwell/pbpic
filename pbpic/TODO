@@ -1,15 +1,29 @@
+draw should ensure only path ops happen
+
 rotations should be in circle fractions by default.
 
 verify currentpoint before show and whereverelse
 
-big buildup of initial gstate parameters at the start of an inset.  Fix this.
+who is in charge of ensuring copies are made for a gstate: the canvas
+or the gstate? My guess is that if you have the convention that a
+'set' is always given a copy, then you can copy gstates cheaply.
 
+big buildup of initial gstate parameters at the start of an inset.  Fix this.
 
 INITIALIZE GSTATE in the renderer!!!!!
 
-WHy am I keeping trakc of lastOPERATION in render_pdf
+Why am I keeping track of last operation in render_pdf
 
-dashes in proper coordinates (i.e. lengths?).
+Done: (dashes are always in pen coordinates) dashes in proper coordinates (i.e. lengths?).
+
+scaleto:  should rescale the coordinate system so that every unit vector
+in user coordinates has length given by Length in the Length's coordinate system, and such that the current dx is preserved, and such that the 
+current origin is preserved.
+
+Done: setlinewidth: should set things up so that lines are drawn in the Length's
+coordinate system
+
+setfontsize: What should I do for a Length?
 
 How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
 

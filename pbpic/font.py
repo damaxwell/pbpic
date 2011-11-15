@@ -1,4 +1,4 @@
-from metric import Vector
+from geometry import Vector
 
 class FontMetrics:
   def __init__(self,hadvance,vadvance,hsb,vsb):

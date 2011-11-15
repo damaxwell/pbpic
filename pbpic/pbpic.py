@@ -4,11 +4,11 @@ import canvas
 import inspect
 import os
 import logging
-from metric import pt, cm, inch, Polar, FPolar, DPolar, Point, Vector
+from metric import pt, cm, inch
 from color import RGBColor, GrayColor
 import color
 from inset import Inset
-from geometry import AffineTransform, BBox
+from geometry import AffineTransform, BBox, Polar, RPolar, DPolar, Point, Vector
 from style import Style, style, setstyle, stylesave, stylerestore
 import texinset
 from math import pi
@@ -26,7 +26,7 @@ functions = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setm
               'fill', 'kfill', 'clip', 'scaleto', 'scale', 'window', 'translate', 'ctmsave', 'gsave', 'grestore', 'setphyscialfont', 
               'showglyphs', 'rotate', 'frotate', 
               'pagetranslate', 'pagerotate', 'pagescale',
-              'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'offset', 'point',
+              'setfont', 'setfontsize', 'findfont', 'show', 'stringwidth', 'rescale', 'point',
               'draw', 'place', 'bbox', 'addpath', 'charpath', 'ctm', 'mark', 'pagemark', 'local', 'marks', 'applystyle', 'currentpoint', 'extents' ]
 for f in functions:
   filled_template = template % (f,f)
@@ -39,7 +39,7 @@ def getcanvas():
   return _canvas
 
   
-def pbpbegin(w=None,h=None,target=None,bbox=None):
+def pbpbegin(w=None,h=None,target=None):
   global _canvas,_finalcanvas
   global _rendertypes
 

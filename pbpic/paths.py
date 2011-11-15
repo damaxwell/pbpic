@@ -41,14 +41,11 @@ def _arcpath(canvas,c,r,x0,y0,x3,y3):
 
   canvas.curveto(x1,y1,x2,y2,x3,y3)
 
-def circle(canvas,r):
+def circle(canvas,r=1):
   """Adds a closed circle to the path of canvas with center c and radius r. If a currentpoint exists, the box is centered at it, 
   otherwise the box is centered at the origin.
   """
-  if canvas.currentpointexists():
-    c = canvas.currentpoint()
-  else:
-    c = Point(0,0)  
+  c = canvas.currentpoint()
   canvas.moveto(c[0]+r,c[1])
   arc(canvas,c,r,0,1)
   canvas.closepath()
@@ -56,10 +53,8 @@ def circle(canvas,r):
 def wedge(canvas,r,v1,v2):
   """Adds a wedge to path with radius r with one side parallel to v1 and another parallel to v2.  The curve of the wedge travels counterclockwise
   from v1 to v2"""
-  if canvas.currentpointexists():
-    p0 = canvas.currentpoint()
-  else:
-    p0 = Point(0,0)  
+  
+  p0 = canvas.currentpoint()
   canvas.moveto(p0)
   t1=Vector(v1[0],v1[1]).fangle()
   t2=Vector(v2[0],v2[1]).fangle()
@@ -71,10 +66,7 @@ def box(canvas,r):
   """Adds a box to the path with sidelength 2*r.  If a currentpoint exists, the box is centered at it, 
   otherwise the box is centered at the origin.
   """    
-  if canvas.currentpointexists():
-    c = canvas.currentpoint()
-  else:
-    c = Point(0,0)  
+  c = canvas.currentpoint()
   canvas.path() + (c.x+r,c.y-r) - (c.x+r,c.y+r) - (c.x-r,c.y+r) - (c.x-r,c.y-r) - 0
 
 
@@ -93,18 +85,13 @@ def graph(canvas,f,x0,x1,N=200):
 def rect(canvas,w,h):
   """Adds a rectangle of width 'w' and height 'h' to the current path with its lower left corner at the current point (or at the
   origin if no currentpoint exists)"""
-  if not canvas.currentpointexists():
-    canvas.moveto(0,0)
   canvas.rlineto(w,0)
   canvas.rlineto(0,h)
   canvas.rlineto(-w,0)
 
 def hlines(canvas,w,dy,N):
   """Adds a sequence of N horizontal lines of width w spaced dy between to the current path, starting at the currentpoint."""
-  if canvas.currentpointexists():
-    c = canvas.currentpoint()
-  else:
-    c=Point(0,0)
+  c = canvas.currentpoint()
 
   x0=c.x; y0=c.y
   for k in range(N):
@@ -114,12 +101,10 @@ def hlines(canvas,w,dy,N):
 
 def vlines(canvas,h,dx,M):
   """Adds a sequence of M vertical lines of height h spaced dx between to the current path starting at the currentpoint."""
-  if canvas.currentpointexists():
-    c = canvas.currentpoint()
-  else:
-    c=Point(0,0)
 
+  c = canvas.currentpoint()
   x0=c.x; y0=c.y
+  
   for k in range(M):
     canvas.moveto(x0,y0)
     canvas.rlineto(0,h)
@@ -136,6 +121,18 @@ def polylines(canvas,*args):
   canvas.moveto(x[0],y[0])
   for k in range(1,len(x)):
     canvas.lineto(x[k],y[k])
+
+def ex(canvas,L=1):
+  canvas.rmoveto(L/2,L/2)
+  canvas.rlineto(-L,-L)  
+  canvas.rmoveto(0,L)
+  canvas.rlineto(L,-L)
+
+def polygon(canvas,*args):
+  canvas.moveto(args[0])
+  for k in range(1,len(args)):
+    canvas.lineto(args[k])
+  canvas.closepath()
 
 def grid(canvas,bbox,N,M):
   """Adds a grid of NxM (horzontal x vertical) cells filling the box bbox to the current path."""
@@ -154,10 +151,8 @@ def r(x0,x1):
 
 def potato(canvas,seed,nodes=False):
   random.seed(seed)
-  if canvas.currentpointexists():
-    c = canvas.currentpoint()
-  else:
-    c=Point(0,0)
+  c = canvas.currentpoint()
+
   W= 1.5
   H =1
   p0 = c+0.5*Vector(r(-1,1),-H)

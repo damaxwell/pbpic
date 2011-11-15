@@ -1,6 +1,6 @@
 from __future__ import division
 from style import updatefromstyle, Style
-from metric import Vector, Point
+from geometry import Vector, Point, toOnePoint
 from marks import Mark
 import misc 
 import math
@@ -49,9 +49,9 @@ class ArrowTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,*args):
-    p = misc.toOnePoint(*args)
+    p = toOnePoint(*args)
     v = p-canvas.currentpoint()
-    dv = canvas.offset(-v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
     o = p+dv
     canvas.lineto(o)
     canvas.stroke()
@@ -62,10 +62,10 @@ class ArrowFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,*args):
-    p1 = misc.toOnePoint(*args)
+    p1 = toOnePoint(*args)
     p0 = canvas.currentpoint()
     v = p1-p0
-    dv = canvas.offset(v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(v,canvas.linewidth()*self.head.length)
     q0 = p0 + dv
     q1 = p1 - dv
 
@@ -79,10 +79,10 @@ class ArrowCurveTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
-    p2=misc.toOnePoint(p2); p3=misc.toOnePoint(p3)
+    p2=toOnePoint(p2); p3=toOnePoint(p3)
     v = p3-p2
 
-    dv = canvas.offset(-v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
     q3 = p3+dv
     q2 = p2+dv
 
@@ -95,18 +95,18 @@ class ArrowCurveFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
-    p1=misc.toOnePoint(p1); p2=misc.toOnePoint(p2); p3=misc.toOnePoint(p3)
+    p1=toOnePoint(p1); p2=toOnePoint(p2); p3=toOnePoint(p3)
     p0 = canvas.currentpoint()
     
     v = p0-p1
-    dv = canvas.offset(-v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
     q0 = p0+dv
     q1 = p1+dv
     canvas.moveto(q0)
     canvas.place(self.head,v)
     
     v = p3-p2
-    dv = canvas.offset(-v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
     q3 = p3+dv
     q2 = p2+dv
         
@@ -120,7 +120,7 @@ class SArrowTo(Mark):
     self.head = ArrowHead(**kwargs)
   
   def drawto(self,canvas,tip,sposition=0.5,flip=False):
-    p3 = misc.toOnePoint(tip)
+    p3 = toOnePoint(tip)
     p0 = canvas.currentpoint()
     v = (p3-p0)
     vp = Vector(v[1],-v[0])
@@ -142,7 +142,7 @@ class SArrowTo(Mark):
     
     canvas.moveto(q0); canvas.curveto(q1,q2,q3)
 
-    dv = canvas.offset(l1*vp+h1*v,canvas.linewidth()*self.head.length)
+    dv = canvas.rescale(l1*vp+h1*v,canvas.linewidth()*self.head.length)
 
     q1 = q3-(l2*vp+h2*v)*2*s2
     q3 = p3-dv
