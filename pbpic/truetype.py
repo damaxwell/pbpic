@@ -478,7 +478,7 @@ class TrueTypeFont:
         advance = hmtx.getUInt16()
         hmtx.skip( 2+(glyph-nLHM) )
         lsb = hmtx.getInt16()
-        return ( advance, lsb )
+        return FontMetrics(float(advance)/self.head.unitsPerEm,0,float(lsb)/self.head.unitsPerEm,0)
       hmtx.seek( 4*(glyph - nLHM) )
       hadvance = float(hmtx.getUInt16())/self.head.unitsPerEm
       hsb = float(hmtx.getInt16())/self.head.unitsPerEm

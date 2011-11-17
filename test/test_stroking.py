@@ -1,7 +1,7 @@
 import pbpic as pbp
 from pbpic import paths, color, cm, pt
 from decorators import PngTest, TaciturnTest
-import nose
+import nose, math
 
 @PngTest(w=6,h=3)
 def TestStrokeColorGsave():
@@ -39,8 +39,8 @@ def TestLineWidthRotate():
 
   pbp.translate(3,0)
 
-  pen.scale(0.5,1)
-  pen.rotate(1./8)
+  pen.units().scale(0.5,1)
+  pen.units().rotate(1./8)
   pbp.setlinewidth(pen)
   with pbp.ctmsave():
     pbp.translate(1.5,1.5)
@@ -104,15 +104,12 @@ def TestLineJoin():
   r=.8
   for c in pbp.gstate.kLineJoin:
     with pbp.ctmsave():
-      print 'path'
       pbp.moveto(.4,-.5)
       pbp.lineto(-.4,-.5)
       pbp.translate(pbp.currentpoint())
       pbp.rotate(.25)
       pbp.lineto(.8,0)
-    print 'setlinejoin'
     pbp.setlinejoin(c)
-    print 'stroke'
     pbp.stroke()
     pbp.translate(4,0)
 
@@ -122,3 +119,23 @@ def TestBadLinejoin():
   pbp.setlinejoin('foo')
 
 
+@PngTest(6,3)
+def TestMiterLimit():
+  """The PostScript language reference manual says that if the 
+  miterlimit is 10, then miters will be cut of at about 11 degrees.
+  Tests making miters at 10 and 12 degrees to verify this."""
+  theta = [ 10, 12]
+  w = 1.;
+  pbp.translate(1.5,1.5)
+  pbp.translate(-w/2,0)
+  pbp.setlinewidth(2*pt)
+  pbp.setlinejoin('miter')
+  pbp.setmiterlimit(10)
+  for t in theta:
+    pbp.moveto(w,0)
+    pbp.lineto(0,0)
+    with pbp.ctmsave():
+      pbp.drotate(t)
+      pbp.lineto(w,0)
+    pbp.stroke()
+    pbp.translate(3,0)

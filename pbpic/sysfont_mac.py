@@ -14,7 +14,6 @@ def load(fd):
   if fd.type == 'RES':
     font_data = _sysfont_mac.load_resource_font(fd.path,fd.faceindex);
     if font_data is None:
-      print 'empty data'
       return None
     return truetype.TrueTypeFont.fromData(font_data)
   return None
@@ -23,15 +22,4 @@ def load(fd):
 def font_type(path):
   if _sysfont_mac.is_resource_font(path):
     return 'RES'
-
-  import os.path
-  ext = os.path.splitext(path)[1].lower()
-  
-  if ext == '.ttf':
-    return 'TrueType'
-  elif ext == '.ttc':
-    return 'TTC'
-  elif ext == '.pfb':
-    return 'Type1'
-
   return None

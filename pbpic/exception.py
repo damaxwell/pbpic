@@ -15,3 +15,7 @@ class StylePropertyNotFound(PBPicException):
     
 class NoCurrentPoint(PBPicException):
   pass
+
+
+class NoFont(PBPicException):
+  pass

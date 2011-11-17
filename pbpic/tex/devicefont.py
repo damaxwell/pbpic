@@ -150,7 +150,7 @@ class FontTable:
     if not mapEntry.encoding is None:
       encodingVector = resource.findEncoding(mapEntry.encoding)
 
-    fd = pbpic.pbpfont.FontDescriptor(pfbpath)
+    fd = pbpic.sysfont.FontDescriptor(pfbpath)
     font = pbpic.pbpfont.EncodedType1Font(fd,pbpic.sysfont.findcachedfont(fd),encodingVector)
     self.fontdict[texFontName] = font
     

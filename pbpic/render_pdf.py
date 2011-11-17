@@ -112,6 +112,7 @@ class CairoRenderer:
 
 
   def showglyphs(self,s,gstate,metrics):
+    print 'showglyphs!'
 
     tm = gstate.ptm.copy()
     tm.concat(gstate.fonttm(reflectY=True))
@@ -127,6 +128,7 @@ class CairoRenderer:
     for k in xrange(len(s)):
       g[k] = (s[k],p.x,p.y)
       p = p + metrics[k].advance
+    print g
     self.ctx.show_glyphs(g)
     self.lastOperation = _Font
 

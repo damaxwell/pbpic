@@ -1,4 +1,3 @@
-import pbpfont
 import os.path
 import truetype, type1
 import exception
@@ -16,10 +15,38 @@ except:
     def font_type(fontpath): return fontTypeFromExtension(fontpath)
     
   sysfont_platform = sysfont_none
-import pbpfont
-import truetype
+
+class FontDescriptor:
+  def __init__(self,path,faceindex=0,fontType=None):
+    self._path = path
+    self._faceindex=faceindex
+    self.type = fontType
+
+  @property
+  def path(self):
+    return self._path
+
+  @property
+  def faceindex(self):
+    return self._faceindex
+
+  def __eq__(self,rhs):
+    if not isinstance(rhs,FontDescriptor): return False
+    if self.path != rhs.path:
+      return False
+    return self.faceindex == rhs.faceindex
+
+  def __repr__(self):
+    return 'FontDescriptor: %s (face %d)' % (self.path,self.faceindex)
+
+  def __hash__(self):
+    return hash(self.path) ^ hash(self.faceindex)
 
 def findfont(name):
+  """Returns a font descriptor obtained from locating the font :name:,
+  which is either a path to a font or the name of a font.
+  """
+
   # First check if this is the path to a font.
   fontPath = None
   psName = None
@@ -38,16 +65,19 @@ def findfont(name):
   if fontType is None:
     fontType = sysfont_platform.font_type(fontPath)
     if fontType is None:
+      fontType = fontTypeFromExtension(fontPath)
+    if fontType is None:
       raise exception.FontUnrecognized(fontPath)
-    if fontType == 'TTC':
-      if not psName is None:
-        with open(fontPath,'rb') as f:
-          ttc = truetype.TrueTypeCollection(f)
-          index = ttc.indexForPSName(psName)
+
+  if fontType == 'TTC' and index<0:
+    if not psName is None:
+      with open(fontPath,'rb') as f:
+        ttc = truetype.TrueTypeCollection(f)
+        index = ttc.indexForPSName(psName)
 
   if index <0: index = 0
 
-  return pbpfont.FontDescriptor(fontPath,index,fontType)
+  return FontDescriptor(fontPath,index,fontType)
 
 
 def fontTypeFromExtension(path):
@@ -64,6 +94,7 @@ def fontTypeFromExtension(path):
   return None
 
 def load(font_descriptor):
+  """Returns the physical font associated witha font descriptor."""
   font = None
   font = sysfont_platform.load(font_descriptor);
   
@@ -100,9 +131,3 @@ class PhysicalFontCache:
 _globalFontCache = PhysicalFontCache()
 def findcachedfont(fontdescriptor):
   return _globalFontCache.findfont(fontdescriptor)
-
-if __name__ == '__main__':
-  import sys
-  fd = findfont(sys.argv[1])
-  f = load(fd)
-  print f

@@ -1,8 +1,9 @@
-from geometry import Point, Vector, BBox
+from geometry import Point, Vector, BBox, AffineTransform
 from metric import Length, PagePoint, PageVector
 from mark import NamedMarks, BBoxMarks
-from exception import NoCurrentPoint
+from exception import NoCurrentPoint, NoFont
 from gstate import GState
+import pbpfont, sysfont
 import math
 
 dx = Vector(1,0)
@@ -10,31 +11,31 @@ dy = Vector(0,1)
 
 class Canvas2:
   def __init__(self, w=None, h=None, renderer=None):
-    self._setextents(w,h,bbox)
     self.gstate = GState();
     self.gstack = []
     self.renderer = renderer
-    self.marks = [ NamedMarks(), BBoxMarks(self)]
-    self.units = AffineTransform()
 
-  def _setextents(self,w,h):
-    if (w is None):
-      raise ValueError("Cannot set canvas size from just a height specifiation; a width is needed.")
-    elif h is None:
-      raise ValueError("Cannot set canvas size from just a width specifiation; a height is needed.")
-    if isinstance(w,Length):
-      w = w.pagelength(dx)
-    if isinstance(h,Length):
-      h = h.pagelength(dy)
-    self._extents = BBox( (0,0), (w,h) )
-
-  def begin(self,w=None,h=None,renderer=None):
-    if not renderer is None:
-      self.renderer=renderer
-
+    self._extents = None
     if (w is not None) or (h is not None):
-      self._setextents(w,h)
+      if (w is None):
+        raise ValueError("Cannot set canvas size from just a height specifiation; a width is needed.")
+      elif h is None:
+        raise ValueError("Cannot set canvas size from just a width specifiation; a height is needed.")
+      if not isinstance(w,Length):
+        raise ValueError("Canvas width must be specified as a Length (e.g. 8.5*in)")
+      if not isinstance(h,Length):
+        raise ValueError("Canvas height must be specified as a Length (e.g. 11*in)")      
 
+      # If units for width/length agree then set the page units from them
+      if w.units() == h.units():
+        self.scaleto(Length(w.units(),1))
+
+      self._extents=BBox((0,0),(w.apply(dx).length(),h.apply(dy).length()))
+
+    self.marks = [ NamedMarks(), BBoxMarks(self)]
+
+
+  def begin(self,w=None,h=None):
     if self.renderer: self.renderer.begin(self._extents)
 
   def end(self):
@@ -152,6 +153,12 @@ class Canvas2:
     self.kfill(fillcolor)
     self.stroke(strokecolor)
 
+  def clip(self):
+    if self.renderer:
+      self.renderer.clip(self.gstate.path,self.gstate)
+    self.gstate.clip(self.gstate.path)
+    self.gstate.path.clear()
+
   def moveto(self,*args):
     p = self.pagePoint(*args)
     self.gstate.path.moveto(p)
@@ -180,12 +187,82 @@ class Canvas2:
   def closepath(self):
     self.gstate.path.close()
 
+  def setfont(self,font):
+    if isinstance(font,str):
+      font = pbpfont.findfont(font)
+    self.gstate.setfont(font)
+
+  def setfontsize(self,size):
+    if not isinstance(size,Length):
+      fs = self.gstate.fontsize.copy()
+      fs.setlength(size)
+      self.gstate.setfontsize(fs)
+    else:
+      self.gstate.setfontsize(size.copy())
+  def fontsize(self):
+    return self.gstate.fontsize.copy()
+
+  def setwritingvector(self,*args):
+    v=self.vector(*args)
+    self.gstate.setwritingvector(v.copy())
+  def writingvector(self):
+    return self.gstate.writingvector.copy()
+
+  def setfontcolor(self,fontcolor):
+    self.gstate.setfontcolor(fontcolor)
+  def fontcolor(self):
+    return self.gstate.fontcolor
+    
+
+  def write(self,s):
+    if self.gstate.path.cp is None: 
+      raise NoCurrentPoint()
+    if self.gstate.font is None:
+      raise NoFont("A font must be set before calling 'write'.")
+    self.gstate.font.write(self,s)
+
+  def charpath(self,c):
+    if self.gstate.font is None:
+      raise NoFont("A font must be set before calling 'charpath'.")
+    return self.gstate.font.charpath(c)
+
+  def stringwidth(self,s):    
+    raise NotImplementedError()
+
+  def showglyphs(self,s,fontdescriptor,tm):
+    font = sysfont.findcachedfont(fontdescriptor)
+    metrics = [ font.metricsForGlyph(c) for c in s ]
+
+    if self.renderer:
+      self.renderer.showglyphs(s,fontdescriptor,tm,metrics,self.gstate)
+
+    adv = Vector(0,0)
+    for m in metrics:
+      adv += m.advance
+    adv = tm.Tv(adv)
+    self.gstate.path.rmoveto(adv)
+
+  def fonttm(self):
+    wv = self.gstate.ctm.Tv(self.gstate.writingvector).unitvector()
+    cp = self.gstate.path.cp
+    o = self.gstate.ctm.orientation()
+    ttm = AffineTransform(wv.x,wv.y,-o*wv.y,o*wv.x,cp.x,cp.y)
+    ttm.concat(self.gstate.fontsize.topagecoords([1,0],[1,0],[0,0],1))
+    # ttm = self.gstate.fontsize.topagecoords(wv,Vector(1,0),cp,o)
+    return ttm
+
   def getmark(self,markname):
     for m in self.marks:
       p = m.getpoint(markname)
       if p is not None:
         return p
     raise KeyError(markname)
+
+  def extents(self):
+    e = BBox()
+    e.include(self.Tinv(self._extents.ll())); e.include(self.Tinv(self._extents.lr()))
+    e.include(self.Tinv(self._extents.ul())); e.include(self.Tinv(self._extents.ur()))
+    return e
 
   def pagePoint(self,*args):
     """Converts anything that might be interpreted as a point into a
@@ -229,12 +306,12 @@ class Canvas2:
           return PageVector(pagev.x,pagev.y)
         if isinstance(x,Length):
           dx = self.gstate.ctm.Tv([1,0])
-          xv = x.rescale(dx)
+          xv = x.apply(dx)
         else:
           xv = self.gstate.ctm.Tv(x,0)
         if isinstance(y,Length):
           dy = self.gstate.ctm.Tv([0,1])
-          yv = y.rescale(dy)
+          yv = y.apply(dy)
         else:
           yv = self.gstate.ctm.Tv(0,y)
         v = xv+yv
@@ -339,6 +416,9 @@ class Canvas2:
     else:
       raise TypeError()
 
+  def path(self):
+    return PathBuilder(self)
+
 class GRestorer:
   def __init__(self,canvas):
     self.canvas = canvas
@@ -357,4 +437,24 @@ class CTMRestorer:
   def __exit__(self,exc_type, exc_value, traceback):
     self.canvas.setctm(self.ctm)
     return False
+
+class PathBuilder:
+  def __init__(self,canvas):
+    self.canvas = canvas
+
+  def __add__(self,p):
+    if isinstance(p,tuple) and len(p)>2:
+      self.canvas.curveto(*p)
+    else:
+      self.canvas.moveto(p)
+    return self
+
+  def __sub__(self,p):
+    if p == 0:
+      self.canvas.closepath()
+    elif (isinstance(p,tuple) or isinstance(p,list)) and len(p)==3:
+      self.canvas.curveto(p[0],p[1],p[2])
+    else:
+      self.canvas.lineto(p)
+    return self
 

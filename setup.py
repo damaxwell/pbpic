@@ -45,7 +45,6 @@ except:
 try:
   build_mac = cfg.getboolean("PBPicture", "build_mac")
   if build_mac:
-    print 'sysfont_mac!'
     ExtensionModules.append( sysfont_mac_module )
 except:
   pass

@@ -12,17 +12,22 @@ _finalcanvas = None
 
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
 functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'setctm', 'ctm',  # methods that affect the CTM
-              'setlinewidth', 'linewidth', 'setlinecolor', 'linecolor', 
+              'setlinewidth', 'linewidth', 'setlinecolor', 'linecolor',  # methods that affect the line state 
               'setlinecap', 'linecap', 'setlinejoin', 'linejoin',
               'setmiterlimit', 'miterlimit',
-              'setfillcolor', 'fillcolor', 'setfillrule', 'fillrule',
-              'gsave', 'grestore', 'ctmsave', 
-              'stroke', 'kstroke', 'fill', 'kfill', 'fillstroke',
-              'currentpointexists', 'currentpoint',
-              'moveto', 'lineto', 'closepath',
+              'setfillcolor', 'fillcolor', 'setfillrule', 'fillrule',    # methods that affect fill state
+              'gsave', 'grestore', 'ctmsave',                            # methods that affect save/restore
+              'stroke', 'kstroke', 'fill', 'kfill', 'fillstroke',        # methods that stroke or fill
+              'clip',                                                    # clipping path
+              'currentpointexists', 'currentpoint',                      # current point
+              'moveto', 'lineto', 'closepath',                           # path construction
               'rmoveto', 'rlineto',
-              'draw',
-              'point', 'vector', 'pagePoint', 'pageVector' ]
+              'write', 'setfont', 
+              'setfontsize', 'fontsize', 'setwritingvector', 'writingvector',
+              'setfontcolor', 'fontcolor',
+              'charpath',             # font
+              'draw', 'path',                                                   # high level path
+              'point', 'vector', 'pagePoint', 'pageVector' ]             # point/vector transformations
 
 for f in functions:
   filled_template = template % (f,f)

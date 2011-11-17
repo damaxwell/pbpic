@@ -96,6 +96,12 @@ class Vector:
     l=self.length()
     return Vector(self.x/l,self.y/l)
 
+  def copy(self):
+    return Vector(self.x,self.y)
+
+  def dot(self,other):
+    return self.x*other.x+self.y*other.y
+
 class Polar(Vector):
   def __init__(self,r,theta):
     Vector.__init__(self,r*math.cos(2*math.pi*ftheta),r*math.sin(2*math.pi*ftheta))
@@ -129,21 +135,37 @@ def toThreePoints(*args):
 
 
 class AffineTransform:
-  def __init__(self, initial=None):
-    if initial is None:
+  def __init__(self,*args):
+    if len(args) == 0:
       self.a = 1
       self.b = 0
       self.c = 0
       self.d = 1
       self.tx = 0
       self.ty = 0
-    else:
+    elif len(args) == 1 and isinstance(args[0],list):
+      initial = args[0]
       self.a=initial[0]
       self.b=initial[1]
       self.c=initial[2]
       self.d=initial[3]
       self.tx=initial[4]
       self.ty=initial[5]
+    elif len(args) == 1 and isinstance(args[0],AffineTransform):
+      tm = args[0]
+      self.a=tm.a
+      self.b=tm.b
+      self.c=tm.c
+      self.d=tm.d
+      self.tx=tm.tx
+      self.ty=tm.ty
+    elif len(args) == 6:
+      self.a=float(args[0])
+      self.b=float(args[1])
+      self.c=float(args[2])
+      self.d=float(args[3])
+      self.tx=float(args[4])
+      self.ty=float(args[5])
 
   def __repr__(self):
     return '[ %g %g; %g %g] + [%g %g]' %(self.a, self.b, self.c, self.d, self.tx, self.ty)
@@ -259,27 +281,6 @@ class AffineTransform:
 
   def det(self):
     return self.a*self.d-self.b*self.c
-
-  def makeortho(self):
-    self.orthoFrameX(tm=self)
-
-  def orthoFrameX(self,tm=None):
-    if tm is None:
-      tm = AffineTransform()
-    vx = self.a; vy = self.b
-    lenv = math.sqrt(vx*vx+vy*vy)
-    if lenv==0:
-      return tm
-    vx /= lenv; vy /= lenv
-    det = self.a*self.d-self.b*self.c
-    if det>0: 
-      det = 1; 
-    else:
-      det = -1
-    tm.a=vx; tm.b=vy
-    tm.c=-det*vy; tm.d = det*vx
-    tm.tx = self.tx; tm.ty = self.ty
-    return tm
 
   def setdiag(self,*args):
     if len(args) == 1:

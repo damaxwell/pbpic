@@ -1,3 +1,8 @@
+Font metrics for "Courier New" are broken.  Is this a font matrix issue?
+They look like they are 1000 times more than they ought to be.
+
+Courier and "Courier Bold" seem to be transposed; reading from a dfont.
+
 draw should ensure only path ops happen
 
 rotations should be in circle fractions by default.
@@ -20,12 +25,12 @@ scaleto:  should rescale the coordinate system so that every unit vector
 in user coordinates has length given by Length in the Length's coordinate system, and such that the current dx is preserved, and such that the 
 current origin is preserved.
 
-Done: setlinewidth: should set things up so that lines are drawn in the Length's
-coordinate system
+Done: setlinewidth: should set things up so that lines are drawn in the Length's coordinate system
 
-setfontsize: What should I do for a Length?
+Done: setfontsize: What should I do for a Length?
 
-How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
+Done: How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
+Answer: For now page size set only in __init__, never in begin.  At least its in just one place this way.
 
 Vertical metrics for true type fonts
 

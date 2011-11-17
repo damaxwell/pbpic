@@ -62,7 +62,7 @@ def wedge(canvas,r,v1,v2):
   canvas.closepath()
 
 
-def box(canvas,r):
+def box(canvas,r=1):
   """Adds a box to the path with sidelength 2*r.  If a currentpoint exists, the box is centered at it, 
   otherwise the box is centered at the origin.
   """    
@@ -85,10 +85,13 @@ def graph(canvas,f,x0,x1,N=200):
 def rect(canvas,w,h):
   """Adds a rectangle of width 'w' and height 'h' to the current path with its lower left corner at the current point (or at the
   origin if no currentpoint exists)"""
+  c = canvas.currentpoint()
+  canvas.moveto(c)
   canvas.rlineto(w,0)
   canvas.rlineto(0,h)
   canvas.rlineto(-w,0)
-
+  canvas.closepath()
+  
 def hlines(canvas,w,dy,N):
   """Adds a sequence of N horizontal lines of width w spaced dy between to the current path, starting at the currentpoint."""
   c = canvas.currentpoint()

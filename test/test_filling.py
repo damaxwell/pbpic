@@ -19,6 +19,7 @@ def TestFillWithAColor():
 @PngTest(2,2)
 def TestFillColorGSave():
   """Test stroke(color)"""
+  pbp.scaleto(1*cm)
   pbp.translate("center")
   pbp.setlinewidth(0.2*cm)
   pbp.draw(paths.circle,0.5,at=(0,0))
@@ -82,3 +83,20 @@ def TestFillRuleInit():
 @TaciturnTest(10,10)
 def TestBadFillRule():
   pbp.setfillrule('eveneven')
+
+@PngTest(4,4)
+def TestClip():
+  pbp.translate("center")
+
+  pbp.setlinewidth(3*pt)
+  pbp.draw(paths.circle,1.5,at=(0,0))
+  pbp.stroke(color.red)
+
+  pbp.draw(paths.circle,1.5,at=(0,0))
+  pbp.clip()
+  pbp.draw(paths.box,r=1,at=(1,1))
+  pbp.fill(color.blue)
+
+  pbp.setlinewidth(3.1*pt)
+  pbp.draw(paths.circle,1.5,at=(0,0))
+  pbp.stroke()

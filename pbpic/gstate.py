@@ -1,5 +1,5 @@
 from __future__ import division
-from geometry import Point, Path, AffineTransform
+from geometry import Point, Vector, Path, AffineTransform
 from metric import pt, Length
 from color import GrayColor
 import math
@@ -22,18 +22,16 @@ class GState:
     self.linecolor = GrayColor(1)
     self.linecap='square'
     self.linejoin='miter'
-    self.miterlimit=1
+    self.miterlimit=10
     self.dash = nodash
 
     self.fillcolor = GrayColor(1)
     self.fillrule = 'evenodd'
 
-    self.fontdescriptor = None
     self.font = None
-    self.fontsize = 12
-    self.fonteffect = AffineTransform()
-    self.fontangle = 0
+    self.fontsize = 12*pt
     self.fontcolor = GrayColor(1)
+    self.writingvector = Vector(1,0)
 
     self.clippaths = []
 
@@ -48,8 +46,6 @@ class GState:
     self.fillpending = { GState.updatefillcolor:True, GState.updatefillrule:True }
     self.fontpending = { GState.updatefontdescriptor:True, GState.updatefontcolor:True, GState.updatefontmatrix:True }
 
-  def setnew(self):
-
   def copystyle(self,other):
     other.setlinewidth(self.linewidth)
     other.setlinecolor(self.linecolor)
@@ -59,11 +55,9 @@ class GState:
     other.setdash(self.dash)
     other.setfillcolor(self.fillcolor)
     other.setfillrule(self.fillrule)
-    other.setphysicalfont(self.fontdescriptor)
     other.setfont(self.font)
+    other.setwritingvector(self.writingvector)
     other.setfontsize(self.fontsize)
-    other.setfontangle(self.fontangle)
-    other.setfonteffect(self.fonteffect)
     other.setfontcolor(self.fontcolor)
 
   def copy(self):
@@ -72,30 +66,14 @@ class GState:
     copy.path=self.path.copy()
     copy.ctm=self.ctm.copy()
     copy.ptm=self.ptm.copy()
-    if isinstance(self.linewidth,Length):
-      copy.linewidth=self.linewidth.copy()
-    else:
-      copy.linewidth = self.linewidth
-    copy.fonteffect=self.fonteffect.copy()
+    copy.linewidth=self.linewidth.copy()
+    copy.fontsize = self.fontsize.copy()
+    copy.writingvector=self.writingvector.copy()
     copy.strokepending=self.strokepending.copy()
     copy.fillpending=self.fillpending.copy()
     copy.fontpending=self.fontpending.copy()
     copy.clippaths = [p.copy() for p in self.clippaths]
     return copy
-    
-  def fonttm(self,reflectY=False):
-    ttm = AffineTransform()
-
-    page_p = self.ptm.Tinv(self.path.cp)
-    ttm.tx = page_p.x
-    ttm.ty = page_p.y
-    
-    ttm.rotate(self.fontangle)
-    ttm.dilate(self.fontsize)
-    ttm.concat(self.fonteffect)
-    if reflectY:
-      ttm.scale(1,-1)
-    return ttm
 
   def setlinewidth(self,w):
     if self.linewidth == w: return
@@ -148,30 +126,16 @@ class GState:
       raise ValueError("Bad fillrule '%s': pick one of %s" %(r,kFillRule) )
     self.fillrule=r
     self.fillpending[GState.updatefillrule] = True
-    
-  def setphysicalfont(self,fontdescriptor):
-    if self.fontdescriptor == fontdescriptor:
-      return
-    self.fontdescriptor=fontdescriptor
-    self.fontpending[GState.updatefontdescriptor] = True
 
   def setfontsize(self,fontsize):
     if fontsize == self.fontsize:
       return
-    self.fontsize=fontsize
-    self.fontpending[GState.updatefontmatrix] = True
+    self.fontsize=fontsize.copy()
 
-  def setfontangle(self,fontangle):
-    if fontangle == self.fontangle:
+  def setwritingvector(self,wv):
+    if wv == self.writingvector:
       return
-    self.fontangle=fontangle
-    self.fontpending[GState.updatefontmatrix] = True
-
-  def setfonteffect(self,fonteffect):
-    if fonteffect == self.fonteffect:
-      return
-    self.fonteffect=fonteffect
-    self.fontpending[GState.updatefontmatrix] = True
+    self.writingvector=wv.copy()
 
   def setfontcolor(self,fontcolor):
     if fontcolor == self.fontcolor:

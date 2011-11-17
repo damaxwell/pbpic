@@ -1,8 +1,11 @@
 from PIL import Image
 import numpy as np
-import os
+import os, sys
 import pbpic as pbp
 from pbpic import cm
+
+images_test_dir = "images-test"
+images_baseline_dir = "images-test"
 
 class ImageComparisonFailure(Exception):
   pass
@@ -12,13 +15,13 @@ class PngTest:
     self.w=w; self.h=h; self.threshold = threshold
   
   def __call__(self,func):
-    output_filename = "test_images/"+func.__name__+".png"
-    baseline_filename = "baseline_images/"+func.__name__+".png"
+    func_dir = os.path.dirname(sys.modules.get( func.__module__ ).__file__)
+    output_filename = os.path.join(func_dir,images_test_dir,func.__name__+".png")
+    baseline_filename = os.path.join(func_dir,images_baseline_dir,func.__name__+".png")
 
     def PngTest():
       try:
         pbp.pbpbegin(self.w*cm,self.h*cm,output_filename)
-        pbp.scaleto(1*cm)
         func()
       finally:
         pbp.pbpend()
@@ -46,7 +49,8 @@ class TaciturnTest:
     self.w=w; self.h=h;
 
   def __call__(self,func):
-    output_filename = "test_images/TaciturnTest.png"
+    func_dir = os.path.dirname(sys.modules.get( func.__module__ ).__file__)
+    output_filename = os.path.join(func_dir,images_test_dir,"TaciturnTest.png")
 
     def decorator():
       try:

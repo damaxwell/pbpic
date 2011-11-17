@@ -1,38 +1,5 @@
-from truetype import TrueTypeFont, TrueTypeCollection
-from type1 import Type1Font
-
+import truetype, type1, sysfont
 from metric import Vector
-
-
-
-class FontDescriptor:
-  def __init__(self,path,faceindex=0,fontType=None):
-    self._path = path
-    self._faceindex=faceindex
-    self.type = fontType
-
-  @property
-  def path(self):
-    return self._path
-
-  @property
-  def faceindex(self):
-    return self._faceindex
-
-  def __eq__(self,rhs):
-    if not isinstance(rhs,FontDescriptor): return False
-    if self.path != rhs.path:
-      return False
-    return self.faceindex == rhs.faceindex
-
-  def __repr__(self):
-    return 'FontDescriptor: %s (face %d)' % (self.path,self.faceindex)
-
-  def __hash__(self):
-    return hash(self.path) ^ hash(self.faceindex)
-
-
-
 
 class Font:
 
@@ -40,7 +7,7 @@ class Font:
   # def descriptor(self):
   #   return self._descriptor
 
-  def showto(self,canvas,s):
+  def write(self,canvas,s):
     raise NotImplementedError()
   def stringWidth(self,s):
     raise NotImplementedError()
@@ -53,9 +20,9 @@ class UnicodeTrueTypeFont(Font):
     self.ttf = ttfont
     self.cmap=self.ttf.cmapForUnicode()
 
-  def showto(self,canvas,s):
-    canvas.setphysicalfont(self._descriptor)
-    canvas.showglyphs(self.cmap.glyphsForString(s))
+  def write(self,canvas,s):
+    tm = canvas.fonttm()
+    canvas.showglyphs(self.cmap.glyphsForString(s),self._descriptor,tm)
 
   def charpath(self,c):
     return self.ttf.pathForGlyph(self.cmap.glyphForChar(c))
@@ -78,9 +45,9 @@ class EncodedType1Font(Font):
   def __repr__(self):
     return "EncodedType1Font(%s,%s)" % (self._descriptor,self.ev)
 
-  def showto(self,canvas,s):
-    canvas.setphysicalfont(self._descriptor)
-    canvas.showglyphs(self.t1font.glyphIndices(self.ev.glyphNamesForChars(s)))
+  def write(self,canvas,s):
+    tm = canvas.fonttm()
+    canvas.showglyphs(self.t1font.glyphIndices(self.ev.glyphNamesForChars(s)),self._descriptor,tm)
 
   def charpath(self,c):
     return self.t1font.pathForGlyphname(self.ev[ord(c)])
@@ -90,3 +57,32 @@ class EncodedType1Font(Font):
     for c in s:
       w += self.t1font.metricsForGlyphname( self.ev[ord(c)]).advance
     return w
+
+
+def findfont(name):
+  """Returns a Font associated with :name:, which is either a path
+  to a font or the name of a font to be found by the operating system.
+  """
+  
+  # Convert the name to a font descriptor
+  fd = sysfont.findfont(name)
+  if fd is None:
+    raise exception.FontNotFound(name)
+
+  # Load the physical font associated with the descriptor
+  font=sysfont.findcachedfont(fd);
+  if font is None:
+    raise exception.FontNotFound(name)
+
+  # For true type, return a unicode encoded font
+  if isinstance(font,truetype.TrueTypeFont):
+    return UnicodeTrueTypeFont(fd,font)
+
+  # For type 1, return a default encoded font
+  if isinstance(font,type1.Type1Font):
+    return EncodedType1Font(fd,font)
+
+  # TODO: At this stage we'd like to see if this is a tex font, and if so return a beast that emulates
+  # using it.  For now, we bail.
+  raise exception.FontNotFound(name)
+

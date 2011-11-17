@@ -55,7 +55,7 @@ class CairoRenderer:
     # self.setlinewidth(1)
     # self.linecolor = GrayColor(1)
     # self.fillcolor = GrayColor(1)
-    # self.ctx.set_font_size(1.)
+    self.ctx.set_font_size(1.)
 
     self.gstack = []
 
@@ -74,8 +74,7 @@ class CairoRenderer:
 
   def grestore(self):
     self.gstack.pop().restore(self)
-    self.ctx.restore()
-  
+    self.ctx.restore()  
 
   def stroke(self,path,gstate):
 
@@ -94,7 +93,7 @@ class CairoRenderer:
     path.drawto(self)
 
     # # Before stroking, set to pen coordinates.
-    penToPage=cairo.Matrix(*gstate.linewidth.tm.asTuple())
+    penToPage=cairo.Matrix(*gstate.linewidth.units().affineTransform().asTuple())
     self.ctx.set_matrix(penToPage*self.llOriginMatrix)        
     
     self.ctx.stroke()
@@ -116,41 +115,41 @@ class CairoRenderer:
     self.ctx.fill()
     self.lastOperation=_Fill
 
-  # 
-  # 
-  # def clip(self,path,gstate):
-  # 
-  #   gstate.updatefill(self)    
-  # 
-  #   self.ctx.new_path()
-  # 
-  #   self.ctx.set_matrix(self.llOriginMatrix)
-  #   path.drawto(self)
-  # 
-  #   self.ctx.clip()
-  #   self.ctx.stroke()
-  #   self.ctx.new_path()
-  #   self.lastOperation=_Fill
-  # 
-  # 
-  # def showglyphs(self,s,gstate,metrics):
-  # 
-  #   tm = gstate.ptm.copy()
-  #   tm.concat(gstate.fonttm(reflectY=True))
-  #   self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
-  # 
-  #   gstate.updatefont(self)
-  #   if self.color != _Font:
-  #     gstate.fontcolor.renderto(self)
-  #     self.color = _Font
-  # 
-  #   p = Point(0,0)
-  #   g = len(s)*[None]
-  #   for k in xrange(len(s)):
-  #     g[k] = (s[k],p.x,p.y)
-  #     p = p + metrics[k].advance
-  #   self.ctx.show_glyphs(g)
-  #   self.lastOperation = _Font
+  def clip(self,path,gstate):
+    gstate.updatefill(self)
+
+    self.ctx.new_path()
+
+    self.ctx.set_matrix(self.llOriginMatrix)
+    path.drawto(self)
+
+    self.ctx.clip()
+    # self.ctx.stroke()
+    # self.ctx.new_path()
+    self.lastOperation=_Fill
+
+  def showglyphs(self,s,fontdescriptor,tm,metrics,gstate):
+
+    tm=tm.copy()
+    tm.scale(1,-1)
+    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
+
+    # FIXME: save fontdescriptor?
+    ftFont = ftFontForDescriptor(fontdescriptor)
+    self.ctx.set_font_face(ftFont)
+
+    # gstate.updatefont(self)
+    if self.color != _Font:
+      gstate.fontcolor.renderto(self)
+      self.color = _Font
+
+    p = Point(0,0)
+    g = len(s)*[None]
+    for k in xrange(len(s)):
+      g[k] = (s[k],p.x,p.y)
+      p = p + metrics[k].advance
+    self.ctx.show_glyphs(g)
+    self.lastOperation = _Font
 
 
   def moveto(self,p):
@@ -169,16 +168,6 @@ class CairoRenderer:
 
   def closepath(self):
     self.ctx.close_path()
-
-
-
-
-
-
-
-
-
-
 
   def setrgbcolor(self,r,g,b):
     self.ctx.set_source_rgb(r,g,b)
@@ -211,10 +200,6 @@ class CairoRenderer:
 
   def setfillrule(self,fillrule):
     self.ctx.set_fill_rule(fill_rule_to_cairo[fillrule])
-
-  def setfont(self,fontdescriptor):
-    ftFont = ftFontForDescriptor(fontdescriptor)
-    self.ctx.set_font_face(ftFont)
 
   def setfontcolor(self,c):
     if self.color == _Font:
@@ -290,7 +275,7 @@ def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
 
 class PDFRenderer(CairoRenderer):
   def __init__(self,filename):
-    CairoRenderer.__init__(cairo.PDFSurface (filename, 0,0))
+    CairoRenderer.__init__(self,cairo.PDFSurface (filename, 0,0))
 
 
 class PNGRenderer(CairoRenderer):
@@ -338,7 +323,7 @@ class PNGRenderer(CairoRenderer):
     # self.setlinewidth(1)
     # self.linecolor = GrayColor(1)
     # self.fillcolor = GrayColor(1)
-    # self.ctx.set_font_size(1.)
+    self.ctx.set_font_size(1.)
 
     self.gstack = []
 
