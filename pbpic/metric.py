@@ -103,8 +103,44 @@ class Units:
   def det(self):
     return self.a*self.d-self.b*self.c
 
-  def affineTransform(self,origin=[0,0]):
+  def affineTransform(self,origin=[0,0],page_v=[1,0],local_v=[1,0],orientation=1):
+    """Returns an affine transformation :T:such that distance '1' in its coordinates
+    corresponds to distance '1' with respect to the Unit's.  There are many
+    such transformations, but they are all related to each other by an isometry.  
+    The particular transformation is specified by indicating
+      
+      T(0,0)=origin
+      T(local_v) points along page_v
+    
+    along with the orientation (+/-1) of T.  The default is origin=(0,0), 
+    page_v=[1,0], and local_v[1,0], so that the origin of T is the origin
+    in page coordiantes, and the x-direction for T corresponds to the page's
+    x-direction.  
+    """
     tm = AffineTransform([self.a,self.b,self.c,self.d,origin[0],origin[1]])
+
+    # This is a unit vector in Length coordinates.
+    dx = self.Tvinv(page_v).unitvector()
+    a=dx.x; b=dx.y
+    if orientation*self.orientation() > 0:
+      o=1
+    else:
+      o=-1
+    # The map tm is is orthogonally related to 'units', takes [1,0]  to c*page_v, and takes (0,0) to page_origin.
+    # tm = self.u.affineTransform(origin=page_origin)
+    rot = AffineTransform([a,b,-o*b,o*a,0,0])
+    tm.concat(rot)
+
+    # For the common case [0,1]~length_v, we're done.
+    if local_v[0]>0 and local_v[1]==0:
+      return tm
+
+    # rot is a rotation matrix that takes local_v to positive multiple of [1,0]
+    ldx = local_v.unitvector()
+    c=ldx.x; d=ldx.y
+    rot = AffineTransform([c,-d,d,c,0,0])
+    tm.concat(rot)
+
     return tm
   
   def measure(self,v):
@@ -238,13 +274,15 @@ class Length:
 
   def measure(self,v):
     """Given a vector :v: in page coordinates, returns its length relative
-    to the Length."""
+    to the Length's length.  I.e., if :v: had length 2 with respect
+    to the Length's units, and the Length's length is 3, then :measure(v):
+    returns 2/3."""
     return self.u.measure(v)/self.r
 
   def apply(self,v):
     """"Given a vector :v: in page coordinates, returns a vector pointing in 
-    the same direction as :v:, but with the length specified by the Length
-    in its coordinate system.
+    the same direction as :v:, but with the Length's length, as measured
+    in the Length's units.
     """
     return v/self.measure(v)
 
@@ -258,30 +296,8 @@ class Length:
        There is exactly one such T.
     """
 
-    # This is a unit vector in Length coordinates.
-    dx = self.u.Tvinv(page_v).unitvector()
-    if orientation*self.u.orientation() > 0:
-      o=1
-    else:
-      o=-1
-    dy = Vector(-o*dx.y,o*dx.x)
-    
-    # This map is is orthogonally related to 'units', takes [1,0]  to c*page_v, and takes (0,0) to page_origin.
-    r = self.r
-    tm = self.u.affineTransform(origin=page_origin)
-    rot = AffineTransform([r*dx.x,r*dx.y,r*dy.x,r*dy.y,0,0])
-    tm.concat(rot)
-
-    # # For the common case [0,1]~length_v, we're done.
-    # if length_v[0]>0 and length_v[1]==0:
-    #   return tm
-    # 
-    # # rot is a rotation matrix that takes length_v to positive multiple of [1,0]
-    # ldx = length_v.unitvector()
-    # c=ldx.x; d=ldx.y
-    # rot = AffineTransform([c,-d,d,c,0,0])
-    # tm.concat(rot)
-
+    tm = self.units().affineTransform(origin=page_origin,page_v=page_v,local_v=length_v,orientation=orientation)
+    tm.dilate(self.r)
     return tm
 
   def __float__(self):

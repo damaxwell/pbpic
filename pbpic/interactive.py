@@ -1,4 +1,4 @@
-from c2 import Canvas2 as Canvas
+from canvas import Canvas
 import inspect, os
 
 # The global canvas for drawing into

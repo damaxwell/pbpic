@@ -5,7 +5,7 @@ import pbpic as pbp
 from pbpic import cm
 
 images_test_dir = "images-test"
-images_baseline_dir = "images-test"
+images_baseline_dir = "images-baseline"
 
 class ImageComparisonFailure(Exception):
   pass
@@ -26,7 +26,7 @@ class PngTest:
       finally:
         pbp.pbpend()
 
-      
+      print 'opening %s', baseline_filename
       output_image = np.array(Image.open(output_filename),dtype='uint8')
       baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
       

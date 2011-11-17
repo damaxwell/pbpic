@@ -1,253 +1,127 @@
-from __future__ import division
-from geometry import Path, AffineTransform, BBox
+from geometry import Point, Vector, BBox, AffineTransform
+from metric import Length, PagePoint, PageVector, Units
+from mark import NamedMarks, BBoxMarks
+from exception import NoCurrentPoint, NoFont
 from gstate import GState
-from color import GrayColor, RGBColor
-import pbpfont
-import sysfont
-from geometry import Point, Vector
-from metric import PagePoint, PageVector, Length
-from render_bbox import BBoxRenderer
+import pbpfont, sysfont
 import math
-import os
-import exception
-from style import style
-import truetype, type1
 
-def isvectorlike(a):
-  try:
-    return len(a) == 2
-  except:
-    pass
-  return False
-
-class MarkedPoints:
-  def __init__(self):
-    self.points = {}
-    self.ctm = None
-  
-  def __repr__(self):
-    return 'MarkedPonts'
-    # print 'Marked points: '
-    # for (key,value) in self.points.items():
-    #   print '  %s: %s' % (key,value)
-    # print '/MarkedPoints'
-  
-  def __getitem__(self,markname):
-    p = self.getpoint(markname)
-    if p is None:
-      raise KeyError(markname)
-    return p
-    
-  def __getattr__(self,markname):
-    p = self.getpoint(markname)
-    if p is None:
-      raise AttributeError()
-    return p
-  
-  def getpoint(self,markname):
-    p = self.points.get(markname)
-    return self._transform(p)
-
-  def _transform(self,p):
-    if isinstance(p,PagePoint) and (not self.ctm is None):
-      return PagePoint(self.ctm.T(p))
-    return p
-    
-  def _addpoint(self,markname,p):
-    #FIXME: Should we  check that we are only adding a PagePoint or a MarkedPoints?
-    self.points[markname] = p
-
-  def copy(self):
-    cp = MarkedPoints()
-    cp.points = self.points.copy()
-    if not self.ctm is None:
-      cp.ctm = self.ctm.copy()
-    return cp
-
-  def append(self,ctm):
-    if self.ctm is None:
-      self.ctm = ctm.copy()
-    else:
-      self.ctm.append(ctm)
-    for p in self.points.values():
-      if isinstance(p,MarkedPoints):
-        p.append(ctm)
-
-
-
-class BBoxMarkedPoints(MarkedPoints):
-  def __init__(self,bbox):
-    MarkedPoints.__init__(self)
-    self._bbox = bbox
-    self.bboxcallbacks = { 'll':BBox.ll, 'lr':BBox.lr, 'ul':BBox.ul, 'ur':BBox.ur, 'center':BBox.center,
-                           'cl':BBox.cl, 'cr':BBox.cr, 'uc':BBox.uc, 'lc':BBox.lc }
-
-  def setbbox(self,bbox):
-    self._bbox = bbox
-  
-  def getpoint(self,markname):
-    # First look up a point with that name
-    p = MarkedPoints.getpoint(self,markname)
-    if not p is None:
-      return p
-
-    # Now try special points
-    cb = self.bboxcallbacks.get(markname)
-    if not cb is None:
-      if self._bbox is None:
-        raise exception.PBPicException('No bounding box available to computed named point "%s"' % markname) 
-      return self._transform(PagePoint(cb(self._bbox)))
-    
-    raise KeyError(markname)
-
-  def copy(self):
-    cp = BBoxMarkedPoints(None)
-    cp.points = self.points.copy()
-    if not self.ctm is None:
-      cp.ctm = self.ctm.copy()
-    if not self._bbox is None:
-      cp._bbox =  self._bbox.copy()
-    return cp
-
+dx = Vector(1,0)
+dy = Vector(0,1)
 
 class Canvas:
-  def __init__(self, w=None, h=None, bbox=None,renderer=None):
-    self._setextents(w,h,bbox)
+  def __init__(self, w=None, h=None, renderer=None):
     self.gstate = GState();
     self.gstack = []
     self.renderer = renderer
-    self.lineStyleCmds = { 'width':self.setlinewidth, 'color':self.setlinecolor, 'cap':self.setlinecap, 
-                           'join':self.setlinejoin, 'miterlimit':self.setmiterlimit, 'dash':self.setdash }
 
-    self.fillStyleCmds = { 'color':self.setfillcolor, 'rule':self.setfillrule }
+    self._extents = None
+    if (w is not None) or (h is not None):
+      if (w is None):
+        raise ValueError("Cannot set canvas size from just a height specifiation; a width is needed.")
+      elif h is None:
+        raise ValueError("Cannot set canvas size from just a width specifiation; a height is needed.")
+      if not isinstance(w,Length):
+        raise ValueError("Canvas width must be specified as a Length (e.g. 8.5*in)")
+      if not isinstance(h,Length):
+        raise ValueError("Canvas height must be specified as a Length (e.g. 11*in)")      
 
-  def _setextents(self,w,h,bbox):
-    if (not w is None) or (not h is None):
-      if not bbox is None:
-        raise ValueError("Cannot set canvas size from both a bounding box and a width/height specifiation.")
-      else:
-        if (w is None):
-          raise ValueError("Cannot set canvas size from just a height specifiation; a width is needed.")
-        elif h is None:
-          raise ValueError("Cannot set canvas size from just a width specifiation; a height is needed.")
-        if isinstance(w,Length):
-          dx = Vector(1,0)
-          w = w.pagelength(dx)
-        if isinstance(h,Length):
-          dy = Vector(0,1)
-          h = h.pagelength(dy)
-        bbox = BBox( (0,0), (w,h) )
-    self._extents = bbox
+      self._extents=BBox((0,0),(w.apply(dx).length(),h.apply(dy).length()))
 
-  def begin(self,w=None,h=None,bbox=None,renderer=None):
-    if not renderer is None:
-      self.renderer=renderer
+    # If units for width/length agree then set the page units from them
+    if w.units() == h.units():
+      self.scaleto(w.units())
 
-    if (not w is None) or (not h is None) or (not bbox is None):
-      self._setextents(w,h,bbox)
+    self.marks = [ NamedMarks(), BBoxMarks(self)]
 
-    self.markedpoints = BBoxMarkedPoints(self._extents)
 
+  def begin(self):
     if self.renderer: self.renderer.begin(self._extents)
-    self.gstate.copystyle(self)
 
   def end(self):
     if self.renderer: self.renderer.end()
 
-  def toOnePoint(self,*args):
-    if len(args) == 2:
-      x=args[0]; y=args[1]
-    elif len(args) == 1:
-      p = args[0]
-      if isinstance(p,str):
-        return self.pagemark(p)
-      elif isinstance(p,PagePoint):
-        return p
-      x = p[0]; y = p[1]
-    else:
-      raise ValueError()
-    return self.gstate.ptm.T(self.gstate.ctm.T(x,y))
-
-  def toOneVector(self,*args):
+  def scale(self,*args):
     if len(args) == 1:
-      v=args[0]
-      if isinstance(v,PageVector):
-        return v
-      return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
-    elif len(args) == 2:
-      x = args[0]; y=args[1]
+      self.gstate.ctm.dilate(args[0])
+    else:
+      self.gstate.ctm.scale(args[0],args[1])
 
-      x0 = 0; y0 = 0;
-      dx = self.gstate.ctm.Tv(Vector(1,0))
-      dy = self.gstate.ctm.Tv(Vector(0,1))
+  def translate(self,*args):
+    p=self.point(*args)
+    self.gstate.ctm.translate(p.x,p.y)
 
-      if isinstance(x,Length):
-        vx = x.rescale(dx)
-        x0 += vx[0]; y0 += vx[1]
-      else:
-        x0 += dx[0]*x; y0 += dx[1]*x; 
+  def rotate(self,ftheta):
+    self.gstate.ctm.rotate(ftheta)
 
-      if isinstance(y,Length):
-        vy = y.rescale(dy)
-        x0 += vy[0]; y0 += vy[1]
-      else:
-        x0 += dy[0]*y; y0 += dy[1]*y;
+  def rrotate(self,theta):
+    self.gstate.ctm.rrotate(theta)
 
-      return self.gstate.ptm.Tv(Vector(x0,y0))
+  def drotate(self,dtheta):
+    self.gstate.ctm.rrotate(2*math.pi*dtheta/360.)
+
+  def scaleto(self,w,preserve=dx):
+    page_dx = self.gstate.ctm.Tv(preserve)
+    o = self.gstate.ctm.orientation()
+    origin=self.gstate.ctm.origin()
+
+    if isinstance(w,Units):
+      units = w
+    else:
+      units = w.units()
+  
+    tm = units.affineTransform(page_v=page_dx,local_v=preserve,origin=origin,orientation=o)
     
-    raise ValueError()
+    if isinstance(w,Length):
+      tm.dilate(w.length())
 
-  def pagemark(self,name):
-    return self.markedpoints[name]
-      
-  def mark(self,name=None,point=None,):
-    if point is None:
-      point = self.currentpoint()
-    if not isinstance(point,PagePoint):
-      point = PagePoint(self.T(point))
-    if not name is None:
-      self.markedpoints._addpoint(name,point)
-    return point
-
-  def marks(self):
-    return self.markedpoints
-
-  def extents(self):
-    e = BBox()
-    e.include(self.Tinv(self._extents.ll())); e.include(self.Tinv(self._extents.lr()))
-    e.include(self.Tinv(self._extents.ul())); e.include(self.Tinv(self._extents.ur()))
-    return e
-
-  def local(self,p):
-    if isinstance(p,PagePoint):
-      return self.Tinv(p)
-    return p
+    self.setctm(tm)
 
   def ctm(self):
     return self.gstate.ctm.copy()
   def setctm(self,ctm):
     self.gstate.ctm = ctm.copy()
 
-  def setlinewidth(self,w):
-    if isinstance(w,Length):
-      dx = self.gstate.ctm.Tv(Vector(1,0))
-      w = w.pagelength(dx)
-    self.gstate.setlinewidth(w)
+  def currentpoint(self):
+    cp = self.gstate.path.cp
+    if cp is None: 
+      raise NoCurrentPoint()
+    return self.gstate.ctm.Tinv(self.gstate.ptm.Tinv(cp))
 
+  def currentpointexists(self):
+    return not self.gstate.path.cp is None
+
+  def gsave(self):
+    self.gstack.append(self.gstate.copy())
+    if not self.renderer is None:
+      self.renderer.gsave()
+
+    return GRestorer(self)
+
+  def grestore(self):
+    self.gstate = self.gstack.pop()
+
+    if not self.renderer is None:
+      self.renderer.grestore()
+
+  def ctmsave(self):
+    return CTMRestorer(self)
+
+  def setlinewidth(self,w):
+    if not isinstance(w,Length):      
+      lw = self.gstate.linewidth.copy()
+      lw.setlength(w)
+      w=lw
+    self.gstate.setlinewidth(w.copy())
 
   def linewidth(self):
     return self.gstate.linewidth
 
-  def setlinecolor(self,c):
-    self.gstate.setlinecolor(c)
-  def linecolor(self):
-    return self.gstate.linecolor
-  
   def setlinecap(self,cap):
     self.gstate.setlinecap(cap)
   def linecap(self):
     return self.gstate.linecap
-    
+
   def setlinejoin(self,join):
     self.gstate.setlinejoin(join)
   def linejoin(self):
@@ -258,128 +132,6 @@ class Canvas:
   def miterlimit(self):
     return self.gstate.miterlimit
 
-  def setfillcolor(self,c):
-    self.gstate.setfillcolor(c)
-  def fillcolor(self):
-    return self.gstate.fillcolor
-
-  def setfillrule(self,r):
-    self.gstate.setfillrule(r)
-  def fillrule(self):
-    return self.gstate.fillrule
-
-  def setdash(self,*args):
-    if len(args) == 2:
-      dash = args[0]; phase = args[1]
-    elif len(args) == 1:
-      dash = args[0][0]; phase = args[0][1]
-    else:
-      raise ValueError('setdash takes 1 or 2 arguments')
-    self.gstate.setdash((dash,phase))
-
-  def dash(self):
-    return ([d for d in self.gstate.dash[0] ], self.gstate.dash[1])
-
-  def currentpoint(self):
-    cp = self.gstate.path.cp
-    if cp is None: return cp
-    return self.gstate.ctm.Tinv(self.gstate.ptm.Tinv(cp))
-
-  def currentpointexists(self):
-    return not self.gstate.path.cp is None
-
-  def setphysicalfont(self,fontdescriptor):
-    self.gstate.setphysicalfont(fontdescriptor)
-
-  # Fixme: this never uses self, so it doesn't belong here
-  def findfont(self,name):
-    fd = sysfont.findfont(name)
-    if fd is None:
-      raise exception.FontNotFound(name)
-
-    font=sysfont.findcachedfont(fd);
-    if font is None:
-      raise exception.FontNotFound(name)
-      
-    if isinstance(font,truetype.TrueTypeFont):
-      return pbpfont.UnicodeTrueTypeFont(fd,font)
-    
-    if isinstance(font,type1.Type1Font):
-      return pbpfont.EncodedType1Font(fd,font)
-
-    # TODO: At this stage we'd like to see if this is a tex font, and if so return a beast that emulates
-    # using it.  For now, we bail.
-    raise exception.FontNotFound(name)
-
-  def setfont(self,font):
-    if isinstance(font,str):
-      font = self.findfont(font)
-    self.gstate.setfont(font)
-
-  def setfontsize(self,size):
-    if isinstance(size,Length):
-      dx = self.gstate.ctm.Tv(Vector(1,0))
-      size=size.pagelength(dx)
-    self.gstate.setfontsize(size)
-
-  def setfontangle(self,angle):
-    self.gstate.setfontangle(angle)
-    
-  def setfonteffect(self,fonteffect):
-    self.gstate.setfonteffect(fonteffect)
-  
-  def setfontcolor(self,fontcolor):
-    self.gstate.setfontcolor(fontcolor)
-  def fontcolor(self):
-    return self.gstate.fontcolor
-
-  def show(self,s):
-    self.gstate.font.showto(self,s)
-
-  def charpath(self,c):
-    return self.gstate.font.charpath(c)
-
-  def stringwidth(self,s):    
-    return self.gstate.ctm.Tvinv(self.gstate.fontsize*self.gstate.font.stringWidth(s))
-
-  def path(self):
-    return PathBuilder(self)
-
-  def newpath(self):
-    self.gstate.path.clear()
-
-  def lineto(self,*args):
-    p = self.toOnePoint(*args)
-    self.gstate.path.lineto(p)
-
-  def rlineto(self,*args):
-    v = self.toOneVector(*args)
-    self.gstate.path.rlineto(v)
-
-  def moveto(self,*args):
-    p = self.toOnePoint(*args)
-    self.gstate.path.moveto(p)
-
-  def rmoveto(self,*args):
-    v = self.toOneVector(*args)
-    self.gstate.path.rmoveto(v)
-
-  def curveto(self,*args):
-    if len(args) == 6:
-      q = (self.toOnePoint(args[0],args[1]),self.toOnePoint(args[2],args[3]),self.toOnePoint(args[4],args[5]))
-    elif len(args) == 3:
-      q = [ self.toOnePoint(p) for p in args]      
-    else:
-      raise ValueError()
-    self.gstate.path.curveto(q[0],q[1],q[2])
-
-  def closepath(self):
-    self.gstate.path.close()
-
-  def fillstroke(self,fillcolor=None,strokecolor=None):
-    self.kfill(fillcolor)
-    self.stroke(strokecolor)
-
   def stroke(self,color=None):
     self.kstroke(color=color)
     self.gstate.path.clear()
@@ -387,10 +139,10 @@ class Canvas:
   def kstroke(self,color=None):
     if self.renderer:
       if not color is None:
-        oldcolor = self.gstate.strokecolor
-        self.gstate.setstrokecolor(color)
+        oldcolor = self.gstate.linecolor
+        self.gstate.setlinecolor(color)
         self.renderer.stroke(self.gstate.path,self.gstate)
-        self.gstate.setstrokecolor(oldcolor)
+        self.gstate.setlinecolor(oldcolor)
       else:
         self.renderer.stroke(self.gstate.path,self.gstate)
 
@@ -408,219 +160,274 @@ class Canvas:
       else:
         self.renderer.fill(self.gstate.path,self.gstate)
 
+  def fillstroke(self,fillcolor=None,strokecolor=None):
+    self.kfill(fillcolor)
+    self.stroke(strokecolor)
+
   def clip(self):
     if self.renderer:
       self.renderer.clip(self.gstate.path,self.gstate)
     self.gstate.clip(self.gstate.path)
     self.gstate.path.clear()
 
+  def moveto(self,*args):
+    p = self.pagePoint(*args)
+    self.gstate.path.moveto(p)
 
-  def applystyle(self,s=None):
-    if s is None:
-      s = style()
-    try:
-      linestyle = s['line']
-      for (key,value) in linestyle.sdict.items():
-        linecmd = self.lineStyleCmds.get(key)
-        # FIXME: Warn if there is a meaningless line style?
-        if not linecmd is None:
-          linecmd(value)
-    except exception.StylePropertyNotFound:
-      pass
-    try:
-      fillstyle = s['fill']
-      for (key,value) in fillstyle.sdict.items():
-        cmd = self.fillStyleCmds.get(key)
-        # FIXME: Warn if there is a meaningless line style?
-        if not cmd is None:
-          cmd(value)
-    except exception.StylePropertyNotFound:
-      pass
+  def lineto(self,*args):
+    p = self.pagePoint(*args)
+    self.gstate.path.lineto(p)
 
-  def addpath(self,p,*args,**kwargs):
+  def curveto(self,*args):
+    if len(args) == 6:
+      q = (self.pagePoint(args[0],args[1]),self.pagePoint(args[2],args[3]),self.pagePoint(args[4],args[5]))
+    elif len(args) == 3:
+      q = [ self.pagePoint(p) for p in args]      
+    else:
+      raise ValueError()
+    self.gstate.path.curveto(q[0],q[1],q[2])
+
+  def rmoveto(self,*args):
+    v = self.pageVector(*args)
+    self.gstate.path.rmoveto(v)
+
+  def rlineto(self,*args):
+    v = self.pageVector(*args)
+    self.gstate.path.rlineto(v)
+
+  def closepath(self):
+    self.gstate.path.close()
+
+  def setfont(self,font):
+    if isinstance(font,str):
+      font = pbpfont.findfont(font)
+    self.gstate.setfont(font)
+
+  def setfontsize(self,size):
+    if not isinstance(size,Length):
+      fs = self.gstate.fontsize.copy()
+      fs.setlength(size)
+      self.gstate.setfontsize(fs)
+    else:
+      self.gstate.setfontsize(size.copy())
+  def fontsize(self):
+    return self.gstate.fontsize.copy()
+
+  def setwritingvector(self,*args):
+    v=self.vector(*args)
+    self.gstate.setwritingvector(v.copy())
+  def writingvector(self):
+    return self.gstate.writingvector.copy()
+
+  def setfontcolor(self,fontcolor):
+    self.gstate.setfontcolor(fontcolor)
+  def fontcolor(self):
+    return self.gstate.fontcolor
+    
+
+  def write(self,s):
+    if self.gstate.path.cp is None: 
+      raise NoCurrentPoint()
+    if self.gstate.font is None:
+      raise NoFont("A font must be set before calling 'write'.")
+    self.gstate.font.write(self,s)
+
+  def charpath(self,c):
+    if self.gstate.font is None:
+      raise NoFont("A font must be set before calling 'charpath'.")
+    return self.gstate.font.charpath(c)
+
+  def stringwidth(self,s):    
+    raise NotImplementedError()
+
+  def showglyphs(self,s,fontdescriptor,tm):
+    font = sysfont.findcachedfont(fontdescriptor)
+    metrics = [ font.metricsForGlyph(c) for c in s ]
+
+    if self.renderer:
+      self.renderer.showglyphs(s,fontdescriptor,tm,metrics,self.gstate)
+
+    adv = Vector(0,0)
+    for m in metrics:
+      adv += m.advance
+    adv = tm.Tv(adv)
+    self.gstate.path.rmoveto(adv)
+
+  def fonttm(self):
+    wv = self.gstate.ctm.Tv(self.gstate.writingvector).unitvector()
+    cp = self.gstate.path.cp
+    o = self.gstate.ctm.orientation()
+    ttm = AffineTransform(wv.x,wv.y,-o*wv.y,o*wv.x,cp.x,cp.y)
+    ttm.concat(self.gstate.fontsize.topagecoords([1,0],[1,0],[0,0],1))
+    return ttm
+
+  def getmark(self,markname):
+    for m in self.marks:
+      p = m.getpoint(markname)
+      if p is not None:
+        return p
+    raise KeyError(markname)
+
+  def extents(self):
+    e = BBox()
+    e.include(self.Tinv(self._extents.ll())); e.include(self.Tinv(self._extents.lr()))
+    e.include(self.Tinv(self._extents.ul())); e.include(self.Tinv(self._extents.ur()))
+    return e
+
+  def pagePoint(self,*args):
+    """Converts anything that might be interpreted as a point into a
+    point expressed in page coordinates."""
+    if len(args) == 1:
+      p = args[0]
+      if isinstance(p,str):
+        return self.getmark(p)
+      elif isinstance(p,PagePoint):
+        return p
+      elif len(p) == 2:
+        x = p[0]; y = p[1]
+      else:
+        raise ValueError()
+    elif len(args) == 2:
+      x=args[0]; y=args[1]
+    else:
+      raise ValueError()
+    return PagePoint(self.gstate.ctm.T(x,y))
+
+  def pageVector(self,*args):
+    """Converts anything that might be interpreted as a vector into a
+    vector expressed in page coordinates."""
+    if len(args) == 1:
+      p = args[0]
+      if isinstance(p,str):
+        raise NotImplementedError()
+      elif isinstance(p,PageVector):
+        return p
+      elif len(p) == 2:
+        x = p[0]; y = p[1]
+      else:
+        raise ValueError()
+    elif len(args) == 2:
+      x=args[0]; y=args[1]
+      if isinstance(x,Length) or isinstance(y,Length):
+        if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,tuple) or isinstance(y,list):
+          v = self.vector(y)
+          pagev = self.gstate.ctm.Tv(v)
+          pagev /= x.measure(pagev)
+          return PageVector(pagev.x,pagev.y)
+        if isinstance(x,Length):
+          dx = self.gstate.ctm.Tv([1,0])
+          xv = x.apply(dx)
+        else:
+          xv = self.gstate.ctm.Tv(x,0)
+        if isinstance(y,Length):
+          dy = self.gstate.ctm.Tv([0,1])
+          yv = y.apply(dy)
+        else:
+          yv = self.gstate.ctm.Tv(0,y)
+        v = xv+yv
+        return PageVector(v.x,v.y)
+      else:
+        x=args[0]; y=args[1]
+    else:
+      raise ValueError()
+    v = self.gstate.ctm.Tv(x,y)
+    return PageVector(v.x, v.y)
+
+
+  def point(self,*args):
+    """Converts anything that might be interpreted as a point into a
+    point expressed in working coordinates."""
+    pp = None
+    if len(args) == 1:
+      p = args[0]
+      if isinstance(p,str):
+        pp = self.getmark(p)
+        return self.gstate.ctm.Tinv(pp.x,pp.y)
+      elif isinstance(p,PagePoint):
+        return self.gstate.ctm.Tinv(p.x,p.y)
+      elif isinstance(p,Point):
+        return p
+      elif len(p) == 2:
+        return Point(p[0],p[1])
+      else:
+        raise ValueError()
+      return Point(self.gstate.ctm.T(x,y))
+    elif len(args) == 2:
+      return Point(args[0],args[1])
+    raise ValueError()
+
+
+  def vector(self,*args):
+    """Converts anything that might be interpreted as a vector into a
+    vector expressed in working coordinates."""
+    if len(args) == 1:
+      p = args[0]
+      if isinstance(p,str):
+        raise NotImplementedError()
+      elif isinstance(p,PageVector):
+        return self.gstate.ctm.Tvinv(p.x,p.y)
+      elif len(p) == 2:
+        return Vector(p[0],p[1])
+      else:
+        raise ValueError()
+    elif len(args) == 2:
+      x = args[0]; y=args[1]
+      if isinstance(x,Length) or isinstance(y,Length):
+        if isinstance(x,Length):
+          if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,tuple) or isinstance(y,list):
+            v = self.vector(y)
+            pagev = self.gstate.ctm.Tv(v)
+            v /= x.measure(pagev)
+            return v
+          dx = self.gstate.ctm.Tv([1,0])
+          l = x.measure(dx)
+          xv = Vector(1./l,0)
+        else:
+          xv = Vector(x,0)
+        if isinstance(y,Length):
+          dy = self.gstate.ctm.Tv([0,1])
+          l = y.measure(dy)
+          yv = Vector(0,1./l)
+        else:
+          yv = Vector(0,y)
+        return xv+yv
+      else:
+        x=args[0]; y=args[1]
+    else:
+      raise ValueError()
+    return Vector(x,y)
+
+  def setlinecolor(self,c):
+    self.gstate.setlinecolor(c)
+  def linecolor(self):
+    return self.gstate.linecolor
+
+  def setfillcolor(self,c):
+    self.gstate.setfillcolor(c)
+  def fillcolor(self):
+    return self.gstate.fillcolor
+
+  def setfillrule(self,r):
+    self.gstate.setfillrule(r)
+  def fillrule(self):
+    return self.gstate.fillrule
+
+
+  # Higher level operations:
+  def draw(self,p,*args,**kwargs):
+    at = kwargs.get('at')
+    if at is not None:
+      self.moveto(at)
+      kwargs.pop('at')
     if callable(p):
       p(self,*args,**kwargs)
     elif hasattr(p,'drawto'):
       p.drawto(self,*args,**kwargs)
     else:
       raise TypeError()
-    
-  def showglyphs(self,s):
-    font = sysfont.findcachedfont(self.gstate.fontdescriptor)
-    metrics = [ font.metricsForGlyph(c) for c in s ]
 
-    if self.renderer:
-      self.renderer.showglyphs(s,self.gstate,metrics)
-
-    adv = Vector(0,0)
-    for m in metrics:
-      adv += m.advance
-    adv = self.gstate.fonttm().Tv(adv)
-    self.gstate.path.rmoveto(adv)
-
-
-
- # Commands that manipulate the current transformation matrix.
-
-  def scaleto(self,size):
-    if isinstance(size,Length):
-      dx = self.gstate.ctm.Tv(Vector(1,0))
-      self.gstate.ctm.makeortho()
-      self.gstate.ctm.dilate(size.pagelength(dx))
-    else:
-      self.gstate.ctm.dilate(size)
-
-  def scale(self,*args):
-    if len(args) == 1:
-      self.gstate.ctm.dilate(args[0])
-    else:
-      self.gstate.ctm.scale(args[0],args[1])
-    
-  def translate(self,*args):
-    if len(args) == 2:
-      x=args[0]; y=args[1]
-    elif len(args) == 1:
-      p = args[0]
-      if isinstance(p,str):
-        q = self.pagemark(p)
-        p = self.Tinv(q)
-      elif isinstance(p,PagePoint):
-        p = self.Tinv(p)
-      x=p[0]; y=p[1]
-    self.gstate.ctm.translate(x,y)
-
-  def rrotate(self,theta):
-    self.gstate.ctm.rrotate(theta)
-
-  def rotate(self,ftheta):
-    self.gstate.ctm.rrotate(2*math.pi*ftheta)
-
-  def frotate(self,ftheta):
-    self.gstate.ctm.rrotate(2*math.pi*ftheta)
-
-  def window(self,oldRect,newRect):
-    hf = oldRect.width()/newRect.width()
-    vf = oldRect.height()/newRect.height()
-
-    self.translate( oldRect.ll() )
-    self.scale(hf,vf)
-    self.translate(-newRect.ll())
-    
-
-
-
-  # Methods that manipulate the ptm?????
-
-  def pagetranslate(self,*args):
-    if len(args) == 2:
-      x=args[0]; y=args[1]
-    elif len(args) == 1:
-      p = args[0]
-      x=p[0]; y=p[1]
-    self.gstate.ptm.translate(x,y)
-
-  def pagerotate(self,theta):
-    self.gstate.ptm.rotate(theta)
-
-  def pagescale(self,sx,sy):
-    self.gstate.ptm.scale(sx,sy)
-
-
-
-
-  def draw(self,o,*args,**kwargs):
-    self.place(o,*args,**kwargs)
-
-  def place(self,o,*args,**kwargs):
-    d = {}
-    for key in [ 'at', 'offset', 'name']:
-      value = None
-      try:
-        value = kwargs.pop(key)
-      except KeyError:
-        pass
-      d[key] = value
-    at = d['at']
-    offset = d['offset']
-    name = d['name']
-
-    if not at is None:
-      self.moveto(at)
-    if not offset is None:
-      self.rmoveto(offset)
-    o.drawto(self,*args,**kwargs)
-      
-    if not name is None:
-      mp = i.markedpoints.copy()
-      mp.append(self.ctm())
-      self.markedpoints._addpoint(name,mp)
-
-
-
-  # Methods that save/restore some or all of the graphics state.
-
-  def gsave(self):
-    self.gstack.append(self.gstate.copy())
-    if not self.renderer is None:
-      self.renderer.gsave()
-
-    return GRestorer(self)
-  
-  def grestore(self):
-    self.gstate = self.gstack.pop()
-
-    if not self.renderer is None:
-      self.renderer.grestore()
-
-  def ctmsave(self):
-    return CTMRestorer(self)
-
-
-  # Methods that transform points and vectors between
-  # user and page coordinates.
-
-  def T(self,p):
-    q = self.gstate.ctm.T(p)
-    return self.gstate.ptm.T(q)
-
-  def Tinv(self,q):
-    p = self.gstate.ctm.Tinv(q)
-    return self.gstate.ptm.Tinv(p)
-
-  def Tv(self,v):
-    return self.gstate.ptm.Tv(self.gstate.ctm.Tv(v))
-
-  def Tvinv(self,w):
-    return self.gstate.ptm.Tv(self.gstate.ctm.Tvinv(w))
-
-  def rescale(self,v,length):
-    """ Given a vector :v: in user coordinates, returns a parallel vector
-    with length :length:. If :length: is a number, the length is specified
-    in user coordinates.  Otherwise it must be a Length and the new Length is
-    specified in the Length's coordinate system."""
-    if isinstance(length,Length):
-      pv = self.gstate.ctm.Tv(v)
-      return v * (length.pagelength(pv)/pv.length() )
-    return v * (length/v.length())
-
-
-class PathBuilder:
-  def __init__(self,canvas):
-    self.canvas = canvas
-    
-  def __add__(self,p):
-    self.canvas.moveto(p)
-    return self
-
-  def __sub__(self,p):
-    if p == 0:
-      self.canvas.closepath()
-    elif (isinstance(p,tuple) or isinstance(p,list)) and len(p)==3:
-      self.canvas.curveto(p[0],p[1],p[2])
-    else:
-      self.canvas.lineto(p)
-    return self
-
+  def path(self):
+    return PathBuilder(self)
 
 class GRestorer:
   def __init__(self,canvas):
@@ -640,3 +447,24 @@ class CTMRestorer:
   def __exit__(self,exc_type, exc_value, traceback):
     self.canvas.setctm(self.ctm)
     return False
+
+class PathBuilder:
+  def __init__(self,canvas):
+    self.canvas = canvas
+
+  def __add__(self,p):
+    if isinstance(p,tuple) and len(p)>2:
+      self.canvas.curveto(*p)
+    else:
+      self.canvas.moveto(p)
+    return self
+
+  def __sub__(self,p):
+    if p == 0:
+      self.canvas.closepath()
+    elif (isinstance(p,tuple) or isinstance(p,list)) and len(p)==3:
+      self.canvas.curveto(p[0],p[1],p[2])
+    else:
+      self.canvas.lineto(p)
+    return self
+
