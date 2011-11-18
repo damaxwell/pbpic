@@ -22,6 +22,7 @@ class PngTest:
     def PngTest():
       try:
         pbp.pbpbegin(self.w*cm,self.h*cm,output_filename)
+        pbp.scaleto(1*cm)
         func()
       finally:
         pbp.pbpend()

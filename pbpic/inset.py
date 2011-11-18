@@ -10,30 +10,26 @@ class Inset(Canvas):
 
   def drawto(self,canvas,origin=None):
 
-    # If we have a named point, use it.  This will raise an exception if the point doesn't exist.
-    if isinstance(origin,str):
-      origin = self.pagemark(origin)
-    # Otherwise, try looking for a point named 'origin'. It's ok if there isn't one.
-    elif origin is None:
-      try:
-        origin = self.pagemark(origin)
-      except KeyError:
-        pass
+    # Build the map from page to 'device' coordinates
+    ptm = canvas.gstate.ptm
+
+    page_cp=canvas.pagePoint(canvas.currentpoint())
+    device_cp = ptm.T(page_cp)
+    
+    tm = AffineTransform()
+    tm.translate(device_cp[0],device_cp[1])
+    
+    v=ptm.Tv(canvas.pageVector((1,0)))
+    tm.rrotate(v.angle())
+    
+    if origin is not None:
+      origin = self.pagePoint(origin)
+      tm.translate(-origin[0],-origin[1])
 
     with canvas.gsave():
-      if canvas.currentpointexists():
-        p=canvas.currentpoint()
-      else:
-        p=(0,0)
-      page_p = canvas.gstate.ctm.T(p)
-      ptm = canvas.gstate.ptm
-      device_p=ptm.T(page_p)
-      canvas.pagetranslate(device_p)
-      v=ptm.Tv(canvas.Tv((1,0)))
-      canvas.pagerotate(v.angle())
-      if not origin is None:
-        canvas.pagetranslate(-(origin[0]),-(origin[1]))
       
+      canvas.pageconcat(tm)
+
       canvas.setctm(AffineTransform())
       
       canvas.newpath()
@@ -44,16 +40,16 @@ class Inset(Canvas):
         fcn(canvas,*args,**kwargs)
       
 
-  wrapped_methods = [ 'setlinewidth', 'setlinecolor', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
-                      'setcolor', 'setrgbcolor', 'setgray', 'newpath',
-                      'setctm',
-                      'setfillcolor', 'setfillrule', 
-                      'lineto', 'moveto', 'curveto', 'closepath', 
-                      'rlineto', 'rmoveto', 
-                      'kstroke', 'kfill', 'stroke', 'fill', 'clip', 'scaleto', 'scale', 'translate', 'gsave', 'grestore', 
-                      'setphysicalfont', 'setfontsize', 'setfontangle', 'setfontcolor', 'setfonteffect',
-                      'pagetranslate', 'pagerotate',
-                      'showglyphs', 'rotate' ]
+  wrapped_methods = [ 'scaleto', 'scale', 'rotate', 'rrotate', 'drotate', 'setctm',
+                      'gsave', 'grestore',
+                      'setlinewidth', 'setlinecap', 'setlinejoin', 'setmiterlimit', 
+                      'kstroke', 'kfill', 'clip', 'setfillrule',
+                      'newpath', 
+                      'translate', 'moveto', 'lineto', 'curveto', 'rmoveto', 'rlineto', 
+                      'closepath',
+                      'setlinecolor', 'setfillcolor',
+                      'setfontsize', 'setwritingvector', 'setfontcolor',
+                      'showglyphs' ]
 
   template = '''def %s(self,*args,**kwargs): 
                    self.script.append(('%s',args,kwargs)); 
@@ -62,6 +58,11 @@ class Inset(Canvas):
   for m in wrapped_methods:
     filled_template = template % (m,m,m)
     exec filled_template in globals(), locals()
+
+  def translate(self,*args):
+    p=self.point(*args)
+    self.script.append('translate',p,{})
+    return Canvas.translate(self,p)
 
   def __repr__(self):
     s=''
@@ -75,7 +76,7 @@ class Inset(Canvas):
       self._extents = None
     else:
       self._extents=bbox.copy()
-    self.markedpoints.setbbox(self._extents)
+    # self.markedpoints.setbbox(self._extents)
 
   def markedbox(self):
     c = Canvas()

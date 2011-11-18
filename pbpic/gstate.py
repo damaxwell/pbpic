@@ -52,7 +52,7 @@ class GState:
     other.setlinecap(self.linecap)
     other.setlinejoin(self.linejoin)
     other.setmiterlimit(self.miterlimit)
-    other.setdash(self.dash)
+    # other.setdash(self.dash)
     other.setfillcolor(self.fillcolor)
     other.setfillrule(self.fillrule)
     other.setfont(self.font)

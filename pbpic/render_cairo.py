@@ -84,9 +84,10 @@ class CairoRenderer:
       gstate.linecolor.renderto(self)
       self.color = _Stroke
     
-    # The path will be expressed in page coordinates, which is equivalent
-    # to our llOriginMatrix
-    self.ctx.set_matrix(self.llOriginMatrix)        
+    # The path will be expressed in page coordinates, which i
+    # need to be converted to device coordinates.
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    self.ctx.set_matrix(pageToDevice)        
 
     # Draw the path in page coordinates.
     self.ctx.new_path()
@@ -94,8 +95,8 @@ class CairoRenderer:
 
     # # Before stroking, set to pen coordinates.
     penToPage=cairo.Matrix(*gstate.linewidth.units().affineTransform().asTuple())
-    self.ctx.set_matrix(penToPage*self.llOriginMatrix)        
-    
+    self.ctx.set_matrix(penToPage*pageToDevice)
+
     self.ctx.stroke()
 
     self.lastOperation=_Stroke
@@ -109,7 +110,8 @@ class CairoRenderer:
   
     self.ctx.new_path()
   
-    self.ctx.set_matrix(self.llOriginMatrix)
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    self.ctx.set_matrix(pageToDevice)
     path.drawto(self)
   
     self.ctx.fill()
@@ -120,19 +122,19 @@ class CairoRenderer:
 
     self.ctx.new_path()
 
-    self.ctx.set_matrix(self.llOriginMatrix)
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    self.ctx.set_matrix(pageToDevice)
     path.drawto(self)
 
     self.ctx.clip()
-    # self.ctx.stroke()
-    # self.ctx.new_path()
     self.lastOperation=_Fill
 
   def showglyphs(self,s,fontdescriptor,tm,metrics,gstate):
 
     tm=tm.copy()
     tm.scale(1,-1)
-    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*self.llOriginMatrix)
+    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*pageToDevice)
 
     # FIXME: save fontdescriptor?
     ftFont = ftFontForDescriptor(fontdescriptor)

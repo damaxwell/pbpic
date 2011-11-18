@@ -10,7 +10,7 @@ dx = Vector(1,0)
 dy = Vector(0,1)
 
 class Canvas:
-  def __init__(self, w=None, h=None, renderer=None):
+  def __init__(self, w=None, h=None, renderer=None, units=None):
     self.gstate = GState();
     self.gstack = []
     self.renderer = renderer
@@ -29,14 +29,19 @@ class Canvas:
       self._extents=BBox((0,0),(w.apply(dx).length(),h.apply(dy).length()))
 
     # If units for width/length agree then set the page units from them
-    if w.units() == h.units():
-      self.scaleto(w.units())
+    # if units is not None:
+    #   self.units = units
+    # elif w.units() == h.units():
+    #   self.units = w.units()
+    # else:
+    #   self.units = (1*pt).units()
 
     self.marks = [ NamedMarks(), BBoxMarks(self)]
 
 
   def begin(self):
     if self.renderer: self.renderer.begin(self._extents)
+    # self.scaleto(self.units)
 
   def end(self):
     if self.renderer: self.renderer.end()
@@ -86,7 +91,13 @@ class Canvas:
     cp = self.gstate.path.cp
     if cp is None: 
       raise NoCurrentPoint()
-    return self.gstate.ctm.Tinv(self.gstate.ptm.Tinv(cp))
+    return self.gstate.ctm.Tinv(cp)
+
+  def currentpagepoint(self):
+    cp = self.gstate.path.cp
+    if cp is None: 
+      raise NoCurrentPoint()
+    return cp.copy()
 
   def currentpointexists(self):
     return not self.gstate.path.cp is None
@@ -134,7 +145,7 @@ class Canvas:
 
   def stroke(self,color=None):
     self.kstroke(color=color)
-    self.gstate.path.clear()
+    self.newpath()
 
   def kstroke(self,color=None):
     if self.renderer:
@@ -148,7 +159,7 @@ class Canvas:
 
   def fill(self,color=None):
     self.kfill(color=color)
-    self.gstate.path.clear()
+    self.newpath()
 
   def kfill(self,color=None):
     if self.renderer:
@@ -168,6 +179,9 @@ class Canvas:
     if self.renderer:
       self.renderer.clip(self.gstate.path,self.gstate)
     self.gstate.clip(self.gstate.path)
+    self.gstate.path.clear()
+
+  def newpath(self):
     self.gstate.path.clear()
 
   def moveto(self,*args):
@@ -274,6 +288,10 @@ class Canvas:
     e.include(self.Tinv(self._extents.ul())); e.include(self.Tinv(self._extents.ur()))
     return e
 
+  # FIXME: the page->device needs more thought
+  def pageconcat(self,tm):
+    self.gstate.ptm.concat(tm)
+
   def pagePoint(self,*args):
     """Converts anything that might be interpreted as a point into a
     point expressed in page coordinates."""
@@ -349,9 +367,6 @@ class Canvas:
         return p
       elif len(p) == 2:
         return Point(p[0],p[1])
-      else:
-        raise ValueError()
-      return Point(self.gstate.ctm.T(x,y))
     elif len(args) == 2:
       return Point(args[0],args[1])
     raise ValueError()

@@ -87,3 +87,17 @@ def TestFontRotate():
   pbp.setwritingvector([0,-1])
   pbp.write("Q")
 
+
+
+@PngTest(6,3)
+def TestWriteAdvance():
+  pbp.setfont("Courier New")
+  pbp.translate(1.5,1.5)
+  pbp.moveto(0,0)
+  pbp.write("ABC")
+  
+  pbp.translate(3,0)
+  pbp.moveto(0,0)
+  pbp.write("A")
+  pbp.write("B")
+  pbp.write("C")    
