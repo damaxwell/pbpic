@@ -9,9 +9,8 @@ from color import RGBColor, GrayColor
 import color
 from inset import Inset
 from geometry import AffineTransform, BBox, Polar, RPolar, DPolar, Point, Vector
-from style import Style, style, setstyle, stylesave, stylerestore
+# from style import Style, style, setstyle, stylesave, stylerestore
 import texinset
-from math import pi
 
 
 _canvas = None

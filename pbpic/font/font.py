@@ -1,4 +1,4 @@
-from geometry import Vector
+from pbpic.geometry import Vector
 
 class FontMetrics:
   def __init__(self,hadvance,vadvance,hsb,vsb):

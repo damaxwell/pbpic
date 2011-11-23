@@ -20,15 +20,28 @@ class Marks:
 class NamedMarks(Marks):
   def __init__(self):
     self._points = {}
+
+  def __iter__(self):
+    for (k,v) in self._points.items():
+      yield (k,v)
     
   def getpoint(self,markname):
     p = self._points.get(markname,None)
     return p
   
-  def addpoint(self,point,markname):
+  def addpoint(self,markname,point):
     assert(isinstance(point,PagePoint))
     self._points[markname] = point
-    
+
+class SubNamedMarks(Marks):
+  def __init__(self,marks,name):
+    self.marks = marks
+    self.name = name+'.'
+  
+  def getpoint(self,markname):
+    if markname.find(self.name)==0:
+      return self.marks.getpoint(markname[len(self.name):])
+
 class BBoxMarks(Marks):
   def __init__(self,canvas):
     self.bboxcallbacks = { 'll':BBox.ll, 'lr':BBox.lr, 'ul':BBox.ul, 'ur':BBox.ur, 'center':BBox.center,

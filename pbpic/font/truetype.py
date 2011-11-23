@@ -1,6 +1,6 @@
 import logging
 # import AsciiHex # For conversion to Type42
-from geometry import Path
+from pbpic.geometry import Path
 import cStringIO as StringIO
 from font import FontMetrics
 

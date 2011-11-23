@@ -18,6 +18,20 @@ class Point:
 
   def __neg__(self):
     return Point(-self.x,-self.y)
+
+  def __mul__(self,s):
+    return Point(self.x*s,self.y*s)
+
+  def __rmul__(self,s):
+    return Point(self.x*s,self.y*s)
+
+  def __div__(self,s):
+    return Point(self.x/s,self.y/s)
+
+  def __truediv__(self,s):
+    return Point(self.x/s,self.y/s)
+
+  
   
   def __repr__(self):
     return 'Point (%g,%g)' % (self.x,self.y)
@@ -104,7 +118,7 @@ class Vector:
 
 class Polar(Vector):
   def __init__(self,r,theta):
-    Vector.__init__(self,r*math.cos(2*math.pi*ftheta),r*math.sin(2*math.pi*ftheta))
+    Vector.__init__(self,r*math.cos(2*math.pi*theta),r*math.sin(2*math.pi*theta))
 
 class RPolar(Vector):
   def __init__(self,r,theta):

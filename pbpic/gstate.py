@@ -1,6 +1,6 @@
 from __future__ import division
 from geometry import Point, Vector, Path, AffineTransform
-from metric import pt, Length
+from metric import pt, Length, Units
 from color import GrayColor
 import math
 import copy
@@ -37,9 +37,13 @@ class GState:
 
     # Transformation from local to page coordinates
     self.ctm=AffineTransform()
+    self.ctmstack = []
 
-    # Transformation from page to device coordinates
-    self.ptm=AffineTransform()
+    # # Transformation from page to device coordinates
+    # self.ptm=AffineTransform()
+
+    # Transformation from line to page coordinates
+    self.unitsize = Units()
 
     self.strokepending = { GState.updatelinewidth:True, GState.updatelinecolor:True, GState.updatelinecap:True, GState.updatelinejoin:True,
                               GState.updatemiterlimit:True, GState.updatedash:True}
@@ -52,7 +56,7 @@ class GState:
     other.setlinecap(self.linecap)
     other.setlinejoin(self.linejoin)
     other.setmiterlimit(self.miterlimit)
-    # other.setdash(self.dash)
+    other.setdash(self.dash)
     other.setfillcolor(self.fillcolor)
     other.setfillrule(self.fillrule)
     other.setfont(self.font)
@@ -65,8 +69,9 @@ class GState:
     copy.__dict__.update(self.__dict__)
     copy.path=self.path.copy()
     copy.ctm=self.ctm.copy()
-    copy.ptm=self.ptm.copy()
+    copy.ctmstack=[c.copy() for c in self.ctmstack]
     copy.linewidth=self.linewidth.copy()
+    copy.unitsize=self.unitsize.copy()
     copy.fontsize = self.fontsize.copy()
     copy.writingvector=self.writingvector.copy()
     copy.strokepending=self.strokepending.copy()
@@ -75,6 +80,16 @@ class GState:
     copy.clippaths = [p.copy() for p in self.clippaths]
     return copy
 
+  def ctmsave(self):
+    self.ctmstack.append(self.ctm.copy())
+
+  def ctmrestore(self):
+    if len(self.ctmstack) > 0:
+      self.ctm = self.ctmstack.pop()
+  
+  def _clearctmstack(self):
+    self.ctmstack=[]
+      
   def setlinewidth(self,w):
     if self.linewidth == w: return
     self.linewidth = w
@@ -147,6 +162,19 @@ class GState:
     if self.font == font:
       return
     self.font=font
+
+  def fonttm(self):
+    fontsize = self.unitsize.copy()
+    fontsize.concat(self.fontsize.units())
+    fontsize.dilate(self.fontsize.length())
+
+    wv = self.ctm.Tv(self.writingvector).unitvector()
+    cp = self.path.cp
+    o = self.ctm.orientation()
+
+    tm = fontsize.affineTransform(page_v=wv,local_v=[1,0],origin=cp,orientation=o)
+    return tm
+
 
   def clip(self,path):
     self.clippaths.append(path.copy())

@@ -1,6 +1,6 @@
 import os.path
 import truetype, type1
-import exception
+import pbpic.exception
 
 try:
   import sysfont_mac

@@ -1,5 +1,5 @@
 import truetype, type1, sysfont
-from metric import Vector
+from pbpic.geometry import Vector
 
 class Font:
 
@@ -21,8 +21,7 @@ class UnicodeTrueTypeFont(Font):
     self.cmap=self.ttf.cmapForUnicode()
 
   def write(self,canvas,s):
-    tm = canvas.fonttm()
-    canvas.showglyphs(self.cmap.glyphsForString(s),self._descriptor,tm)
+    canvas.showglyphs(self.cmap.glyphsForString(s),self._descriptor)
 
   def charpath(self,c):
     return self.ttf.pathForGlyph(self.cmap.glyphForChar(c))
@@ -46,8 +45,7 @@ class EncodedType1Font(Font):
     return "EncodedType1Font(%s,%s)" % (self._descriptor,self.ev)
 
   def write(self,canvas,s):
-    tm = canvas.fonttm()
-    canvas.showglyphs(self.t1font.glyphIndices(self.ev.glyphNamesForChars(s)),self._descriptor,tm)
+    canvas.showglyphs(self.t1font.glyphIndices(self.ev.glyphNamesForChars(s)),self._descriptor)
 
   def charpath(self,c):
     return self.t1font.pathForGlyphname(self.ev[ord(c)])

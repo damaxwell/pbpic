@@ -1,9 +1,9 @@
 from geometry import Point, Vector, BBox, AffineTransform
 from metric import Length, PagePoint, PageVector, Units
 from mark import NamedMarks, BBoxMarks
-from exception import NoCurrentPoint, NoFont
+import exception
 from gstate import GState
-import pbpfont, sysfont
+from font import pbpfont, sysfont
 import math
 
 dx = Vector(1,0)
@@ -36,7 +36,7 @@ class Canvas:
     # else:
     #   self.units = (1*pt).units()
 
-    self.marks = [ NamedMarks(), BBoxMarks(self)]
+    self.marks = [ NamedMarks() ]
 
 
   def begin(self):
@@ -73,30 +73,31 @@ class Canvas:
     if isinstance(w,Units):
       units = w
     else:
+      # It shoudl be a length
       units = w.units()
   
-    tm = units.affineTransform(page_v=page_dx,local_v=preserve,origin=origin,orientation=o)
+    pageUnits = self.gstate.unitsize.copy()
+    pageUnits.concat(units)
+
+    tm = pageUnits.affineTransform(page_v=page_dx,local_v=preserve,origin=origin,orientation=o)
     
     if isinstance(w,Length):
       tm.dilate(w.length())
+    self.gstate.ctm = tm
 
-    self.setctm(tm)
-
-  def ctm(self):
-    return self.gstate.ctm.copy()
-  def setctm(self,ctm):
-    self.gstate.ctm = ctm.copy()
+  def ctmconcat(self,tm):
+    self.gstate.ctm.concat(tm)
 
   def currentpoint(self):
     cp = self.gstate.path.cp
     if cp is None: 
-      raise NoCurrentPoint()
+      raise exception.NoCurrentPoint()
     return self.gstate.ctm.Tinv(cp)
 
   def currentpagepoint(self):
     cp = self.gstate.path.cp
     if cp is None: 
-      raise NoCurrentPoint()
+      raise exception.NoCurrentPoint()
     return cp.copy()
 
   def currentpointexists(self):
@@ -104,9 +105,9 @@ class Canvas:
 
   def gsave(self):
     self.gstack.append(self.gstate.copy())
+    self.gstate._clearctmstack() # Ensure that it is not possible to restore the ctm past a gsave.
     if not self.renderer is None:
       self.renderer.gsave()
-
     return GRestorer(self)
 
   def grestore(self):
@@ -116,7 +117,10 @@ class Canvas:
       self.renderer.grestore()
 
   def ctmsave(self):
+    self.gstate.ctmsave()
     return CTMRestorer(self)
+  def ctmrestore(self):
+    self.gstate.ctmrestore()
 
   def setlinewidth(self,w):
     if not isinstance(w,Length):      
@@ -142,6 +146,21 @@ class Canvas:
     self.gstate.setmiterlimit(ml)
   def miterlimit(self):
     return self.gstate.miterlimit
+
+  def setdash(self,*args):
+    if len(args) == 2:
+      dash = args[0]; phase = args[1]
+    elif len(args) == 1:
+      d=args[0][0]
+      if isinstance(d,list) or isinstance(d,tuple):
+        dash=args[0][0]; phase=args[0][1]
+      else:
+        dash = args[0]; phase = 0
+    else:
+      raise ValueError('setdash takes 1 or 2 arguments')
+    self.gstate.setdash((dash,phase))
+  def dash(self):
+    return ([d for d in self.gstate.dash[0] ], self.gstate.dash[1])
 
   def stroke(self,color=None):
     self.kstroke(color=color)
@@ -241,23 +260,24 @@ class Canvas:
 
   def write(self,s):
     if self.gstate.path.cp is None: 
-      raise NoCurrentPoint()
+      raise exception.NoCurrentPoint()
     if self.gstate.font is None:
-      raise NoFont("A font must be set before calling 'write'.")
+      raise exception.NoFont("A font must be set before calling 'write'.")
     self.gstate.font.write(self,s)
 
   def charpath(self,c):
     if self.gstate.font is None:
-      raise NoFont("A font must be set before calling 'charpath'.")
+      raise exception.NoFont("A font must be set before calling 'charpath'.")
     return self.gstate.font.charpath(c)
 
   def stringwidth(self,s):    
     raise NotImplementedError()
 
-  def showglyphs(self,s,fontdescriptor,tm):
+  def showglyphs(self,s,fontdescriptor):
     font = sysfont.findcachedfont(fontdescriptor)
     metrics = [ font.metricsForGlyph(c) for c in s ]
 
+    tm=self.gstate.fonttm()
     if self.renderer:
       self.renderer.showglyphs(s,fontdescriptor,tm,metrics,self.gstate)
 
@@ -267,14 +287,6 @@ class Canvas:
     adv = tm.Tv(adv)
     self.gstate.path.rmoveto(adv)
 
-  def fonttm(self):
-    wv = self.gstate.ctm.Tv(self.gstate.writingvector).unitvector()
-    cp = self.gstate.path.cp
-    o = self.gstate.ctm.orientation()
-    ttm = AffineTransform(wv.x,wv.y,-o*wv.y,o*wv.x,cp.x,cp.y)
-    ttm.concat(self.gstate.fontsize.topagecoords([1,0],[1,0],[0,0],1))
-    return ttm
-
   def getmark(self,markname):
     for m in self.marks:
       p = m.getpoint(markname)
@@ -282,22 +294,51 @@ class Canvas:
         return p
     raise KeyError(markname)
 
+  def mark(self,*args):
+    if len(args)==1:
+      name=args[0]
+      self.mark(name,currentpagepoint())
+    if len(args)%2 != 0:
+      raise ValueError()
+    if len(args)>2:
+      for k in range(len(args)/2):
+        self.mark(args[2*k],args[2*k+1])
+    else:
+      name=args[0]; point=self.pagePoint(args[1])
+      self.marks[0].addpoint(name,point)
+
   def extents(self):
+    if self._extents is None:
+      raise exception.NoExtents()
     e = BBox()
-    e.include(self.Tinv(self._extents.ll())); e.include(self.Tinv(self._extents.lr()))
-    e.include(self.Tinv(self._extents.ul())); e.include(self.Tinv(self._extents.ur()))
+    e.include(self.gstate.ctm.Tinv(self._extents.ll())); e.include(self.gstate.ctm.Tinv(self._extents.lr()))
+    e.include(self.gstate.ctm.Tinv(self._extents.ul())); e.include(self.gstate.ctm.Tinv(self._extents.ur()))
     return e
 
+  def pageExtents(self):
+    if self._extents is None:
+      raise exception.NoExtents()
+    return self._extents.copy()
+
+  # # FIXME: the page->device needs more thought
+  # def pageconcat(self,tm):
+  #   self.gstate.ptm.concat(tm)
+  # 
+  # 
   # FIXME: the page->device needs more thought
-  def pageconcat(self,tm):
-    self.gstate.ptm.concat(tm)
+  def sizeconcat(self,tm):
+    self.gstate.unitsize.concat(tm)
 
   def pagePoint(self,*args):
     """Converts anything that might be interpreted as a point into a
     point expressed in page coordinates."""
     if len(args) == 1:
       p = args[0]
-      if isinstance(p,str):
+      if callable(p):
+        p=p(self)
+        assert(isinstance(p,PagePoint))
+        return p
+      elif isinstance(p,str):
         return self.getmark(p)
       elif isinstance(p,PagePoint):
         return p
@@ -316,7 +357,11 @@ class Canvas:
     vector expressed in page coordinates."""
     if len(args) == 1:
       p = args[0]
-      if isinstance(p,str):
+      if callable(p):
+        p=p(self)
+        assert(isinstance(p,PageVector))
+        return p
+      elif isinstance(p,str):
         raise NotImplementedError()
       elif isinstance(p,PageVector):
         return p
@@ -327,7 +372,7 @@ class Canvas:
     elif len(args) == 2:
       x=args[0]; y=args[1]
       if isinstance(x,Length) or isinstance(y,Length):
-        if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,tuple) or isinstance(y,list):
+        if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list):
           v = self.vector(y)
           pagev = self.gstate.ctm.Tv(v)
           pagev /= x.measure(pagev)
@@ -358,7 +403,13 @@ class Canvas:
     pp = None
     if len(args) == 1:
       p = args[0]
-      if isinstance(p,str):
+      if callable(p):
+        p=p(self)
+        if isinstance(p,PagePoint):
+          return self.point(p)
+        assert(isinstance(p,Point))
+        return p
+      elif isinstance(p,str):
         pp = self.getmark(p)
         return self.gstate.ctm.Tinv(pp.x,pp.y)
       elif isinstance(p,PagePoint):
@@ -377,7 +428,13 @@ class Canvas:
     vector expressed in working coordinates."""
     if len(args) == 1:
       p = args[0]
-      if isinstance(p,str):
+      if callable(p):
+        p=p(self)
+        if isinstance(p,PageVector):
+          return self.vector(p)
+        assert(isinstance(p,Vector))
+        return p
+      elif isinstance(p,str):
         raise NotImplementedError()
       elif isinstance(p,PageVector):
         return self.gstate.ctm.Tvinv(p.x,p.y)
@@ -389,7 +446,7 @@ class Canvas:
       x = args[0]; y=args[1]
       if isinstance(x,Length) or isinstance(y,Length):
         if isinstance(x,Length):
-          if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,tuple) or isinstance(y,list):
+          if isinstance(y,str) or isinstance(y,PageVector)  or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list):
             v = self.vector(y)
             pagev = self.gstate.ctm.Tv(v)
             v /= x.measure(pagev)
@@ -456,11 +513,10 @@ class GRestorer:
 class CTMRestorer:
   def __init__(self,canvas):
     self.canvas = canvas
-    self.ctm = canvas.ctm()
   def __enter__(self):
     pass
   def __exit__(self,exc_type, exc_value, traceback):
-    self.canvas.setctm(self.ctm)
+    self.canvas.ctmrestore()
     return False
 
 class PathBuilder:

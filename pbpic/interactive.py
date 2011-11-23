@@ -1,6 +1,7 @@
 from canvas import Canvas
 from inset import Inset
 import inspect, os
+import texinset
 
 # The global canvas for drawing into
 _canvas = None
@@ -23,12 +24,12 @@ def popcanvas():
   _canvas = _canvasstack.pop()
 
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
-functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'setctm', 'ctm',  # methods that affect the CTM
+functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'ctmconcat',  # methods that affect the CTM
               'setlinewidth', 'linewidth', 'setlinecolor', 'linecolor',  # methods that affect the line state 
-              'setlinecap', 'linecap', 'setlinejoin', 'linejoin',
+              'setlinecap', 'linecap', 'setlinejoin', 'linejoin', 'setdash', 'dash',
               'setmiterlimit', 'miterlimit',
               'setfillcolor', 'fillcolor', 'setfillrule', 'fillrule',    # methods that affect fill state
-              'gsave', 'grestore', 'ctmsave',                            # methods that affect save/restore
+              'gsave', 'grestore', 'ctmsave', 'ctmrestore',              # methods that affect save/restore
               'stroke', 'kstroke', 'fill', 'kfill', 'fillstroke',        # methods that stroke or fill
               'clip',                                                    # clipping path
               'currentpointexists', 'currentpoint',                      # current point
@@ -39,7 +40,8 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'setfontcolor', 'fontcolor',
               'charpath',             # font
               'draw', 'path',                                                   # high level path
-              'point', 'vector', 'pagePoint', 'pageVector' ]             # point/vector transformations
+              'point', 'vector', 'pagePoint', 'pageVector',             # point/vector transformations
+              'extents' ]                                               # introspection
 
 for f in functions:
   filled_template = template % (f,f)
@@ -140,7 +142,9 @@ class InsetGuard:
     popcanvas()
     return False
 
-# def placetex(text,*args,**kwargs):
-#   i = texinset.texinset(text)
-#   place(i,*args,**kwargs)
+def placetex(text,*args,**kwargs):
+  i = texinset.texinset(text)
+  if not kwargs.has_key('origin'):
+    kwargs['origin']='origin'
+  i.drawto(_canvas,**kwargs)
 

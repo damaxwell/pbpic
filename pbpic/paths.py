@@ -1,6 +1,6 @@
 from __future__ import division
 from math import cos, sin, sqrt, pi
-from metric import Point, Vector
+from geometry import Point, Vector, Polar
 import random
 
 def arc(canvas,c,r,t0,t1):
@@ -50,7 +50,7 @@ def circle(canvas,r=1):
   arc(canvas,c,r,0,1)
   canvas.closepath()
 
-def wedge(canvas,r,v1,v2):
+def wedge(canvas,r=1,v1=[0,1],v2=[1,0]):
   """Adds a wedge to path with radius r with one side parallel to v1 and another parallel to v2.  The curve of the wedge travels counterclockwise
   from v1 to v2"""
   
@@ -62,13 +62,13 @@ def wedge(canvas,r,v1,v2):
   canvas.closepath()
 
 
-def box(canvas,r=1):
-  """Adds a box to the path with sidelength 2*r.  If a currentpoint exists, the box is centered at it, 
+def square(canvas,L=1):
+  """Adds a square to the path with sidelength r.  If a currentpoint exists, the box is centered at it, 
   otherwise the box is centered at the origin.
-  """    
+  """
   c = canvas.currentpoint()
+  r=L/2
   canvas.path() + (c.x+r,c.y-r) - (c.x+r,c.y+r) - (c.x-r,c.y+r) - (c.x-r,c.y-r) - 0
-
 
 def graph(canvas,f,x0,x1,N=200):
   dx = float(x1-x0)/N
@@ -82,7 +82,7 @@ def graph(canvas,f,x0,x1,N=200):
     x+=dx
     canvas.lineto(x,f(x))
 
-def rect(canvas,w,h):
+def rect(canvas,w=1,h=1):
   """Adds a rectangle of width 'w' and height 'h' to the current path with its lower left corner at the current point (or at the
   origin if no currentpoint exists)"""
   c = canvas.currentpoint()
@@ -92,7 +92,7 @@ def rect(canvas,w,h):
   canvas.rlineto(-w,0)
   canvas.closepath()
   
-def hlines(canvas,w,dy,N):
+def hlines(canvas,w=1,dy=1,N=2):
   """Adds a sequence of N horizontal lines of width w spaced dy between to the current path, starting at the currentpoint."""
   c = canvas.currentpoint()
 
@@ -102,7 +102,7 @@ def hlines(canvas,w,dy,N):
     canvas.rlineto(w,0)
     y0 += dy
 
-def vlines(canvas,h,dx,M):
+def vlines(canvas,h=1,dx=1,M=2):
   """Adds a sequence of M vertical lines of height h spaced dx between to the current path starting at the currentpoint."""
 
   c = canvas.currentpoint()
@@ -132,19 +132,30 @@ def ex(canvas,L=1):
   canvas.rlineto(L,-L)
 
 def polygon(canvas,*args):
+  # If the argument is a single list of points, extract the list,
+  # otherwise args will be a tuple of points.
+  if len(args) == 1:
+    args = args[0]
   canvas.moveto(args[0])
   for k in range(1,len(args)):
     canvas.lineto(args[k])
   canvas.closepath()
 
-def grid(canvas,bbox,N,M):
+def n_gon(canvas,r=1,n=3,phase=0):
+  phase = phase+.25
+  canvas.moveto(Polar(r,phase))
+  for k in range(1,n):
+    canvas.lineto(Polar(r,phase+k/float(n)))
+  canvas.closepath()
+  
+def grid(canvas,box=None,N=1,M=1):
   """Adds a grid of NxM (horzontal x vertical) cells filling the box bbox to the current path."""
-  dx = bbox.width()/N
-  dy = bbox.height()/M
-  canvas.moveto(bbox.ll())
-  hlines(canvas,bbox.width(),dy,M+1)
-  canvas.moveto(bbox.ll())
-  vlines(canvas,bbox.height(),dx,N+1)
+  dx = box.width()/M
+  dy = box.height()/N
+  canvas.moveto(box.ll())
+  hlines(canvas,box.width(),dy,N+1)
+  canvas.moveto(box.ll())
+  vlines(canvas,box.height(),dx,M+1)
 
 
 def r(x0,x1):

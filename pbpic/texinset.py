@@ -5,13 +5,11 @@ import inset
 from misc import FileSweeper
 from tex.devicefont import FontTable
 from geometry import BBox
-from style import Style, style, updatefromstyle
+# from style import Style, style, updatefromstyle
 import color
 from metric import pt
 import userprefs
 import hashlib
-
-
 
 class _DviCache:
   
@@ -74,7 +72,11 @@ class TexProcessor:
                                        postamble = r'\end{document}' ) )    
 
   def __init__(self,**kwargs):
-    updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
+    # updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
+    self.command=r'latex -interaction=nonstopmode'
+    self.preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}'
+    self.postamble = r'\end{document}'
+
     self._dvi = None
     self.errmsg = None
     
@@ -145,12 +147,12 @@ class DviToInset(tex.dvi.DviReader):
     self.bbox.include(x+w,-y+h)
 
     if self.firstChar:
-      self.canvas.mark(point=(x,-y),name='origin')
+      self.canvas.mark('origin',(x,-y))
       self.firstChar = False
 
     self.canvas.moveto(x,-y)
     s = chr(c)
-    self.canvas.show(s)
+    self.canvas.write(s)
 
   def put(self,c):
     self.set(c)
@@ -182,7 +184,7 @@ class DviToInset(tex.dvi.DviReader):
   def setfont(self):
     self.currentDeviceFont = self.fontTable.findFont(self.currentfont.fontname)
     fontsize = float(self.scale*self.currentfont.s)/(1 << 16)
-    self.canvas.setfontsize(fontsize)
+    self.canvas.setfontsize(fontsize*pt)
     self.canvas.setfont(self.currentDeviceFont)
 
   def special(self,x):

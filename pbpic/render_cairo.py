@@ -86,7 +86,8 @@ class CairoRenderer:
     
     # The path will be expressed in page coordinates, which i
     # need to be converted to device coordinates.
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(pageToDevice)        
 
     # Draw the path in page coordinates.
@@ -94,7 +95,10 @@ class CairoRenderer:
     path.drawto(self)
 
     # # Before stroking, set to pen coordinates.
-    penToPage=cairo.Matrix(*gstate.linewidth.units().affineTransform().asTuple())
+    u=gstate.unitsize.asTuple()
+    penToPage=cairo.Matrix(*gstate.linewidth.units().affineTransform().asTuple())*\
+    cairo.Matrix(u[0],u[1],u[2],u[3],0,0)
+
     self.ctx.set_matrix(penToPage*pageToDevice)
 
     self.ctx.stroke()
@@ -110,7 +114,8 @@ class CairoRenderer:
   
     self.ctx.new_path()
   
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(pageToDevice)
     path.drawto(self)
   
@@ -122,7 +127,8 @@ class CairoRenderer:
 
     self.ctx.new_path()
 
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(pageToDevice)
     path.drawto(self)
 
@@ -133,7 +139,8 @@ class CairoRenderer:
 
     tm=tm.copy()
     tm.scale(1,-1)
-    pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
+    pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*pageToDevice)
 
     # FIXME: save fontdescriptor?

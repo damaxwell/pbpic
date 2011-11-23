@@ -1,7 +1,6 @@
 import StringIO
 import array
-from geometry import AffineTransform, Path
-from metric import Vector, Point
+from pbpic.geometry import AffineTransform, Path, Vector, Point
 from font import FontMetrics
 import re
 

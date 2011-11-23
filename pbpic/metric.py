@@ -88,6 +88,17 @@ class Units:
   def shear(self,v,l):
     raise NotImplementedError()
 
+  def concat(self,other):
+    if isinstance(other,Units) or isinstance(other,AffineTransform):
+      tm = other
+      a = self.a*tm.a+self.c*tm.b
+      b = self.b*tm.a+self.d*tm.b
+      c = self.a*tm.c+self.c*tm.d
+      d = self.b*tm.c+self.d*tm.d
+      self.a = a; self.b=b; self.c=c; self.d=d
+    else:
+      raise ValueError()
+
   def rotate( self, theta):
     self.rrotate(2*math.pi*theta)
 
@@ -142,6 +153,9 @@ class Units:
     tm.concat(rot)
 
     return tm
+
+  def asTuple(self):
+    return (self.a,self.b,self.c,self.d)
   
   def measure(self,v):
     w=self.Tvinv(v)
@@ -269,8 +283,8 @@ class Length:
     self.u=units
     self.r=r
   
-  def __str__(self):
-    return "Length %f with respect to units%s." % (self.r,str(self.u))
+  def __repr__(self):
+    return "Length %f with respect to %s." % (self.r,str(self.u))
 
   def measure(self,v):
     """Given a vector :v: in page coordinates, returns its length relative
@@ -284,6 +298,8 @@ class Length:
     the same direction as :v:, but with the Length's length, as measured
     in the Length's units.
     """
+    if self.r == 0:
+      return v*0
     return v/self.measure(v)
 
   def topagecoords(self,page_v,length_v,page_origin,orientation):

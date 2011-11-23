@@ -1,7 +1,7 @@
 import resource, font
 import logging
 import re
-import pbpic.type1, pbpic.pbpfont, pbpic.sysfont
+from pbpic.font import type1, pbpfont, sysfont
 
 """dvipdfm fontmap entries are described in the dvipdfm user's manual.
 
@@ -96,7 +96,7 @@ def encodingVectorFromFile( filePath ):
 
   name_re = re.compile("(/[^ \n\r\t]+)[ \n\r\t]")
   elist = [ m.group(1) for m in name_re.finditer( contents ) ]
-  return pbpic.type1.EncodingVector( elist )
+  return type1.EncodingVector( elist )
 
 
 Base13Names = [ "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
@@ -150,8 +150,8 @@ class FontTable:
     if not mapEntry.encoding is None:
       encodingVector = resource.findEncoding(mapEntry.encoding)
 
-    fd = pbpic.sysfont.FontDescriptor(pfbpath)
-    font = pbpic.pbpfont.EncodedType1Font(fd,pbpic.sysfont.findcachedfont(fd),encodingVector)
+    fd = sysfont.FontDescriptor(pfbpath)
+    font = pbpfont.EncodedType1Font(fd,sysfont.findcachedfont(fd),encodingVector)
     self.fontdict[texFontName] = font
     
     return font
