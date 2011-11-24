@@ -304,8 +304,16 @@ class Canvas:
       for k in range(len(args)/2):
         self.mark(args[2*k],args[2*k+1])
     else:
-      name=args[0]; point=self.pagePoint(args[1])
+      point=self.pagePoint(args[0]);name=args[1]; 
       self.marks[0].addpoint(name,point)
+
+  def addmarks(self,marker,*args,**kwargs):
+    if hasattr(marker,'markup'):
+      marker.markup(self,*args,**kwargs)
+    elif callable(marker):
+      marker(*args,**kwargs)
+    else:
+      raise ValueError('Unable to add marks from %s' % marker)
 
   def extents(self):
     if self._extents is None:

@@ -9,7 +9,7 @@ class Inset(Canvas):
     Canvas.__init__(self,*args)
     self.script=[]
 
-  def addmarks(self,canvas,name='inset',origin=None):
+  def markup(self,canvas,name='inset',origin=None):
     with canvas.ctmsave():
       canvas.translate(canvas.currentpoint())
       canvas.scaleto(1*pt)
@@ -26,7 +26,7 @@ class Inset(Canvas):
 
   def drawto(self,canvas,origin=None,marks=None):
     if marks is not None:
-      self.addmarks(canvas,name=marks,origin=origin)
+      self.markup(canvas,name=marks,origin=origin)
 
     with canvas.gsave():
       canvas.translate(canvas.currentpoint())

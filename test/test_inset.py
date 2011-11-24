@@ -1,6 +1,6 @@
 import pbpic as pbp
 from pbpic import loc, paths, color, cm, pt, geometry
-from decorators import PngTest, TaciturnTest
+from pbpic.test.decorators import PngTest, TaciturnTest
 import nose, math
 
 @PngTest(w=3,h=3)

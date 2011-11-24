@@ -42,7 +42,7 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'charpath',             # font
               'draw', 'path',                                                   # high level path
               'point', 'vector', 'pagePoint', 'pageVector',             # point/vector transformations
-              'extents', 'mark' ]                                               # introspection
+              'extents', 'mark', 'getmark', 'addmarks' ]                                               # introspection
 
 for f in functions:
   filled_template = template % (f,f)

@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 import pbpic as pbp
 from pbpic import cm
+from pbpic.render_cairo import PNGRenderer
 
 images_test_dir = "images-test"
 images_baseline_dir = "images-baseline"
@@ -10,6 +11,56 @@ images_baseline_dir = "images-baseline"
 class ImageComparisonFailure(Exception):
   pass
 
+
+class ReroutePDFRenderer(PNGRenderer):
+
+  output_directory=""
+
+  def __init__(self,filename):
+    filename = os.path.splitext(os.path.basename(filename))[0]+".png"
+    filename=os.path.join(self.output_directory,filename)
+    PNGRenderer.__init__(self,filename)
+
+    
+
+class ExampleTest:
+  def __init__(self,filename,threshold=1.):
+    self.filename = filename
+    self.threshold = threshold
+  
+  def __call__(self,func):
+    func_dir = os.path.dirname(sys.modules.get( func.__module__ ).__file__)
+    image_name = os.path.splitext(os.path.basename(self.filename))[0]
+    image_name += ".png"
+
+    output_dir = os.path.join(func_dir,images_test_dir)
+    ReroutePDFRenderer.output_directory=output_dir
+
+    output_filename = os.path.join(output_dir,image_name)
+    baseline_filename = os.path.join(func_dir,images_baseline_dir,image_name)
+
+    def EgTest():
+      old_renderer=pbp.getrenderer('pdf')
+      try:
+        pbp.setrenderer('pdf',ReroutePDFRenderer)
+        exec 'import %s' % self.filename in locals()
+
+        output_image = np.array(Image.open(output_filename),dtype='uint8')
+        baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
+    
+        N=3.*output_image.shape[0*output_image.shape[1]]
+        l1err = np.sum(np.abs(output_image-baseline_image))/N
+    
+        if l1err >= self.threshold:
+          raise ImageComparisonFailure("Image %s is not closed to %s\nL1 error %f" %(output_filename,baseline_filename,l1err) )
+
+        os.remove(output_filename)
+      finally:
+        pbp.setrenderer('pdf',old_renderer)
+      
+    EgTest.__name__ = func.__name__
+    return EgTest
+    
 class PngTest:
   def __init__(self,w=3,h=3,threshold=1.):
     self.w=w; self.h=h; self.threshold = threshold

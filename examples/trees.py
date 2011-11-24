@@ -91,7 +91,7 @@ def treeinset(node,tscale,root=True):
 
     if root:
       # path() + (0,0) - (0,1); stroke()
-      mark('root',(0,0))
+      mark((0,0),'root')
       with ctmsave():
         scaleto(1*pt)
         draw(paths.n_gon,r=3.5,n=5)

@@ -1,6 +1,6 @@
 import pbpic as pbp
 from pbpic import paths, color, cm, pt, loc
-from decorators import PngTest, TaciturnTest
+from pbpic.test.decorators import PngTest, TaciturnTest
 
 @PngTest(3,3)
 def TestWrite():

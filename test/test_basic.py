@@ -2,7 +2,7 @@ import pbpic as pbp
 from pbpic import pt, cm, loc
 from math import pi, sqrt
 import cairo, os
-from decorators import TaciturnTest
+from pbpic.test.decorators import TaciturnTest
 
 eps = 1e-6
 

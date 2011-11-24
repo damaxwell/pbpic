@@ -15,8 +15,8 @@ translate(loc.center)
 moveto(0,0)
 
 tree=treeinset(r,1*cm)
-tree.mark('ll',loc.ll,'lr',loc.lr);
-tree.addmarks(getcanvas(),'tree',origin=loc.center)
+tree.mark(loc.ll,'ll',loc.lr,'lr');
+addmarks(tree,'tree',origin=loc.center)
 
 myo_tip = point('tree.ll')-vector(1.3,1)
 root=point('tree.root')
@@ -52,7 +52,7 @@ moveto((tree_left+tree_right)/2,point('myo.origin').y)
 rmoveto(0,-6*pt)
 p=currentpoint()
 hemo = texinset(r'h\ae moglobins')
-hemo.mark('cl',loc.cl,'cr',loc.cr)
+hemo.mark(loc.cl,'cl',loc.cr,'cr')
 hemo.drawto(getcanvas(),origin=loc.uc,marks='hemo')
 moveto('hemo.cl')
 rmoveto(-3*pt,0)
