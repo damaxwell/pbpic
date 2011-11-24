@@ -125,7 +125,7 @@ class Canvas:
   def setlinewidth(self,w):
     if not isinstance(w,Length):      
       lw = self.gstate.linewidth.copy()
-      lw.setlength(w)
+      lw.setlength(float(w))
       w=lw
     self.gstate.setlinewidth(w.copy())
 

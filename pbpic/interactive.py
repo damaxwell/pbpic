@@ -1,7 +1,8 @@
 from canvas import Canvas
 from inset import Inset
 import inspect, os
-import texinset
+from pbptex import texinset
+import logging
 
 # The global canvas for drawing into
 _canvas = None
@@ -41,13 +42,25 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'charpath',             # font
               'draw', 'path',                                                   # high level path
               'point', 'vector', 'pagePoint', 'pageVector',             # point/vector transformations
-              'extents' ]                                               # introspection
+              'extents', 'mark' ]                                               # introspection
 
 for f in functions:
   filled_template = template % (f,f)
   exec filled_template in globals()
 
 _rendertypes={'pdf':('render_cairo','PDFRenderer'), 'png':('render_cairo','PNGRenderer')}
+
+def setrenderer(ext,render_desc):
+  """Sets the renderer to be used for files with extension :ext:.  The :render_desc:
+  should be the class of the renderer to use."""
+  # We also allow a tuple of strings ("module","class") so that we can have provide
+  # default renderers based on cairo, but not insist that cairo be installed.
+  # By describing the default renderer using strings, we will not 
+  # load cairo as a part of starting up pbpic.
+  _rendertypes[ext]=render_desc
+
+def getrenderer(ext):
+  return _rendertypes[ext]
 
 def getcanvas():
   global _canvas
@@ -56,7 +69,7 @@ def getcanvas():
 def pbpbegin(w=None,h=None,target=None):
   global _canvas,_finalcanvas
   global _rendertypes
-
+  
   if not(_canvas is None):
     logging.warning('Overwriting current canvas with a pbpbegin(). Did you forget to pbpend()?')
 
@@ -78,9 +91,14 @@ def pbpbegin(w=None,h=None,target=None):
       _canvas = Inset(w,h)
       return
     else:
-      # import render_pdf2;renderer=render_pdf2.PNGRenderer(filename)
-      command = 'import %s;renderer=%s.%s("%s")' % (rendertype[0],rendertype[0],rendertype[1],filename)      
-      exec command
+      # The rendertype with either be a class for the renderer, or a tuple (modulename,classname)
+      # of strings describing the renderer's class.
+      if isinstance(rendertype,tuple):
+        command = 'import %s;RendererClass=%s.%s' % (rendertype[0],rendertype[0],rendertype[1])
+        exec command
+      else:
+        RendererClass=rendertype
+      renderer=RendererClass(filename)
   else:
     # Assume we have a renderer
     # FIXME: check that the target is indeed a renderer?
@@ -143,7 +161,7 @@ class InsetGuard:
     return False
 
 def placetex(text,*args,**kwargs):
-  i = texinset.texinset(text)
+  i = texinset(text)
   if not kwargs.has_key('origin'):
     kwargs['origin']='origin'
   i.drawto(_canvas,**kwargs)

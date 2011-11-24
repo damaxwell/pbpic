@@ -1,5 +1,5 @@
 import pbpic as pbp
-from pbpic import paths, color, cm, pt
+from pbpic import paths, color, cm, pt, loc
 from decorators import PngTest, TaciturnTest
 import nose, math
 
@@ -52,7 +52,7 @@ def TestLineWidthRotate():
 @PngTest(5,5)
 def TestStrokeWithAColor():
   """Test stroke(color)"""
-  pbp.translate('center')
+  pbp.translate(loc.center)
   pbp.setlinewidth(0.2*cm)
   pbp.draw(paths.circle,2,at=(0,0))
   pbp.stroke(color.red)
@@ -63,7 +63,7 @@ def TestStrokeWidths():
   """Test setting various line widths as a width or a number.
   Also test that stroke(color) does not change the strokecolor.
   """
-  pbp.translate('center')
+  pbp.translate(loc.center)
   pbp.setlinewidth(1*cm)
   pbp.draw(paths.ex,at=(0,0))
   pbp.stroke()

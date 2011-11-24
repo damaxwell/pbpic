@@ -1,5 +1,5 @@
 import pbpic as pbp
-from pbpic import pt, cm
+from pbpic import pt, cm, loc
 from math import pi, sqrt
 import cairo, os
 from decorators import TaciturnTest
@@ -37,8 +37,8 @@ def TestPointAndPagePoint():
     
     # Verify the center is the same as a point or page point, and
     # that they are the center.
-    c = pbp.pagePoint('center')
-    d = pbp.point('center')
+    c = pbp.pagePoint(loc.center)
+    d = pbp.point(loc.center)
 
     checksame(pbp.point(c), d)
 

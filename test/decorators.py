@@ -10,6 +10,32 @@ images_baseline_dir = "images-baseline"
 class ImageComparisonFailure(Exception):
   pass
 
+class ExampleTest:
+  def __init__(self,filename):
+    self.filename = filename
+  
+  def __call__(self,func):
+    func_dir = os.path.dirname(sys.modules.get( func.__module__ ).__file__)
+    output_filename = os.path.join(func_dir,images_test_dir,func.__name__+".png")
+    baseline_filename = os.path.join(func_dir,images_baseline_dir,func.__name__+".png")
+
+    def EgTest(self):
+      exec 'import %s' % self.filename
+
+      output_image = np.array(Image.open(output_filename),dtype='uint8')
+      baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
+    
+      N=3.*output_image.shape[0*output_image.shape[1]]
+      l1err = np.sum(np.abs(output_image-baseline_image))/N
+    
+      if l1err >= self.threshold:
+        raise ImageComparisonFailure("Image %s is not closed to %s\nL1 error %f" %(output_filename,baseline_filename,l1err) )
+
+      os.remove(output_filename)
+      
+    EgTest.__name__ = func.__name__
+    return EgTest
+    
 class PngTest:
   def __init__(self,w=3,h=3,threshold=1.):
     self.w=w; self.h=h; self.threshold = threshold
@@ -27,7 +53,6 @@ class PngTest:
       finally:
         pbp.pbpend()
 
-      print 'opening %s', baseline_filename
       output_image = np.array(Image.open(output_filename),dtype='uint8')
       baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
       

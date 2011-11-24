@@ -6,7 +6,6 @@ import misc
 import math
 
 
-
 def stdarrowhead(canvas,W,H,theta,origin,v):
   with canvas.ctmsave():
     canvas.translate(origin)
