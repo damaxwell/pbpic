@@ -11,13 +11,13 @@ def TestStrokeColorGsave():
 
   pbp.setlinewidth(1*pt)
   pbp.moveto(1.5,1.5)
-  pbp.draw(paths.ex,1)
+  pbp.build(paths.ex,1)
   pbp.setlinecolor(color.red)
 
   with pbp.gsave():
     pbp.translate(3,0)
     pbp.moveto(1.5,1.5)
-    pbp.draw(paths.ex,1)
+    pbp.build(paths.ex,1)
     pbp.setlinecolor(color.blue)
     with pbp.gsave():
       pbp.setlinecolor(color.green)
@@ -34,7 +34,7 @@ def TestLineWidthRotate():
     pbp.translate(1.5,1.5)
     pbp.scale(1,0.5)
     pbp.moveto(0,0)
-    pbp.draw(paths.circle)
+    pbp.build(paths.circle)
     pbp.stroke()
 
   pbp.translate(3,0)
@@ -46,7 +46,7 @@ def TestLineWidthRotate():
     pbp.translate(1.5,1.5)
     pbp.scale(1,0.5)
     pbp.moveto(0,0)
-    pbp.draw(paths.circle)
+    pbp.build(paths.circle)
     pbp.stroke()
 
 @PngTest(5,5)
@@ -54,7 +54,7 @@ def TestStrokeWithAColor():
   """Test stroke(color)"""
   pbp.translate(loc.center)
   pbp.setlinewidth(0.2*cm)
-  pbp.draw(paths.circle,2,at=(0,0))
+  pbp.build(paths.circle,2,at=(0,0))
   pbp.stroke(color.red)
 
 
@@ -65,18 +65,18 @@ def TestStrokeWidths():
   """
   pbp.translate(loc.center)
   pbp.setlinewidth(1*cm)
-  pbp.draw(paths.ex,at=(0,0))
+  pbp.build(paths.ex,at=(0,0))
   pbp.stroke()
   pbp.setlinewidth(0.5)
-  pbp.draw(paths.ex,at=(0,0))
+  pbp.build(paths.ex,at=(0,0))
   pbp.stroke(color.blue)
 
   pbp.setlinewidth(4*pt)
-  pbp.draw(paths.ex,at=(0,0))
+  pbp.build(paths.ex,at=(0,0))
   pbp.stroke(color.red)
 
   pbp.setlinewidth(1)
-  pbp.draw(paths.ex,at=(0,0))
+  pbp.build(paths.ex,at=(0,0))
   pbp.stroke()
 
 @nose.tools.raises(ValueError)
@@ -139,3 +139,12 @@ def TestMiterLimit():
       pbp.lineto(w,0)
     pbp.stroke()
     pbp.translate(3,0)
+
+@nose.tools.raises(pbp.exception.BuildTransgression)
+@TaciturnTest(1,1)
+def TestNoBuild():
+  def badbuilder(canvas):
+    canvas.rlineto(1,1)
+    canvas.stroke()
+  pbp.moveto(0,0)
+  pbp.build(badbuilder)

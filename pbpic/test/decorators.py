@@ -48,6 +48,9 @@ class ExampleTest:
         output_image = np.array(Image.open(output_filename),dtype='uint8')
         baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
     
+        if output_image.shape != baseline_image.shape:
+          raise ImageComparisonFailure("Image %s size does not match baseline %s:\n%s <=> %s" % \
+                     (output_filename,baseline_filename,str(output_image.shape),str(baseline_image.shape)))
         N=3.*output_image.shape[0*output_image.shape[1]]
         l1err = np.sum(np.abs(output_image-baseline_image))/N
     

@@ -78,12 +78,12 @@ def TestInsetWriteRotate():
 def TestInsetInInset():
   with pbp.ctmsave():
     pbp.scaleto(1*cm)
-    pbp.draw(paths.grid,box=pbp.extents(),N=4,M=8,at=(0,0))
+    pbp.build(paths.grid,box=pbp.extents(),N=4,M=8,at=(0,0))
     pbp.stroke(color.GrayColor(0.2))
 
   with pbp.inset(1*cm,1*cm) as i1:
     pbp.scaleto(1*cm)
-    pbp.draw(pbp.extents())
+    pbp.build(pbp.extents())
     with pbp.gsave():
       pbp.stroke()
     pbp.clip()
@@ -91,7 +91,7 @@ def TestInsetInInset():
     pbp.rotate(1/8.)
     w=.25; h=.33
     pbp.moveto(-w/2,-h/2)
-    pbp.draw(paths.rect,w,h)
+    pbp.build(paths.rect,w,h)
     pbp.fillstroke(fillcolor=color.blue)
 
   pbp.scaleto(1*cm)
@@ -105,7 +105,7 @@ def TestInsetInInset():
     with pbp.ctmsave():
       pbp.rotate(1/8.)
       i1.drawto(i2,origin=loc.center)
-    pbp.draw(pbp.extents())
+    pbp.build(pbp.extents())
     pbp.stroke()
 
   pbp.moveto(0,0)
@@ -120,7 +120,7 @@ def TestInsetLinewidth():
     linewidth.units().scale(0.5,1)
     print linewidth
     pbp.setlinewidth(linewidth)
-    pbp.draw(paths.rect,w=1,h=1,at=(0,0))
+    pbp.build(paths.rect,w=1,h=1,at=(0,0))
     pbp.stroke()
   pbp.translate(1.5,1.5)
   pbp.moveto(0,0)
@@ -159,9 +159,9 @@ def TestInsetBorderSquare():
         [geometry.Vector(1,.3), geometry.Vector(1,-0.3),geometry.Vector(-1,0.3),geometry.Vector(-1,-0.3)] ]
   pbp.scaleto(1*cm)
   pbp.moveto(4,0)
-  pbp.draw(paths.vlines,8,4,3)
+  pbp.build(paths.vlines,8,4,3)
   pbp.moveto(0,4)
-  pbp.draw(paths.hlines,16,4,1)
+  pbp.build(paths.hlines,16,4,1)
   pbp.stroke()
 
   pbp.translate(2,2)
@@ -174,17 +174,17 @@ def TestInsetBorderSquare():
         
         with pbp.ctmsave():
           pbp.scaleto(1*pt)
-          pbp.draw(paths.circle,3,at=(0,0))
+          pbp.build(paths.circle,3,at=(0,0))
           pbp.fill(color.red)
 
         with pbp.inset(1*cm,1*cm) as i:    
           pbp.scaleto(1*cm)
           pbp.moveto(loc.ll)
-          pbp.draw(paths.rect,1,1)
+          pbp.build(paths.rect,1,1)
           with pbp.gsave():
             pbp.clip()
             pbp.moveto(loc.center)
-            pbp.draw(paths.ex)
+            pbp.build(paths.ex)
             pbp.stroke()
 
             pbp.setlinewidth(1.5)

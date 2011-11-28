@@ -1,15 +1,11 @@
 from style import Style, updatefromstyle
 from metric import pt
 import paths
-from pbpic import getcanvas
 
 class Mark:
   
   def drawto(self,canvas,*args,**kwargs):
     pass
-    
-  def __call__(self,*args,**kwargs):
-    self.drawto(getcanvas(),*args,**kwargs)
 
 class Dot(Mark):
 
@@ -24,5 +20,5 @@ class Dot(Mark):
     with canvas.ctmsave():
       canvas.translate(canvas.currentpoint())
       canvas.scaleto(0.5*self.size)
-      canvas.addpath(paths.circle,1)
+      canvas.build(paths.circle,1)
       canvas.fill()

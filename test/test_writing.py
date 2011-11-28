@@ -25,7 +25,7 @@ def TestFontSize():
   pbp.moveto(loc.center)
   pbp.rmoveto(-.9,0)
   pbp.scaleto(1*pt)
-  pbp.draw(paths.rect,fontsize,fontsize)
+  pbp.build(paths.rect,fontsize,fontsize)
   pbp.stroke()
 
 # @PngTest(2,2)
@@ -67,7 +67,7 @@ def TestFontRotate():
   pbp.moveto(loc.center)
   with pbp.gsave():
     pbp.scaleto(1*pt)
-    pbp.draw(paths.circle,.5)
+    pbp.build(paths.circle,.5)
     pbp.fill()
 
   pbp.setfont("Courier New")
@@ -76,13 +76,13 @@ def TestFontRotate():
   pbp.write("Q")
   with pbp.gsave():
     pbp.scaleto(1*pt)
-    pbp.draw(paths.circle,.5)
+    pbp.build(paths.circle,.5)
     pbp.fill()
   pbp.setwritingvector(right)
   pbp.write("Q")
   with pbp.gsave():
     pbp.scaleto(1*pt)
-    pbp.draw(paths.circle,.5)
+    pbp.build(paths.circle,.5)
     pbp.fill()
   pbp.setwritingvector([0,-1])
   pbp.write("Q")

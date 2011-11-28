@@ -46,23 +46,23 @@ with gsave():
 for k in [0,1,2]:
   moveto(k,y0)
   rmoveto(0,-5*pt)
-  placetex('$10^{%d}$' % k,'uc')
+  drawtex('$10^{%d}$' % k,'uc')
 
 for k in [-3,-2,-1]:
   moveto(x0,k)
   rmoveto(-5*pt,0)
-  placetex('$10^{%d}$' % k,'cr')
+  drawtex('$10^{%d}$' % k,'cr')
   
 moveto((x0+x1)/2,y0)
 rmoveto(0,-15*pt)
 rmoveto(0,-4*pt)
-placetex('iteration','uc')
+drawtex('iteration','uc')
 
 translate(x0,(y0+y1)/2)
 rotate(0.25)
 moveto(0,0)
 rmoveto(0,30*pt)
-placetex('$L^2$ discrepancy','lc')
+drawtex('$L^2$ discrepancy','lc')
 
 
 pbpend()

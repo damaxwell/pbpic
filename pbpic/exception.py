@@ -19,6 +19,11 @@ class NoCurrentPoint(PBPicException):
 class NoExtents(PBPicException):
   pass
 
-
 class NoFont(PBPicException):
+  pass
+
+class BuildTransgression(PBPicException):
+  pass
+
+class StackUnderflow(PBPicException):
   pass

@@ -40,9 +40,9 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'setfontsize', 'fontsize', 'setwritingvector', 'writingvector',
               'setfontcolor', 'fontcolor',
               'charpath',             # font
-              'draw', 'path',                                                   # high level path
+              'build', 'draw', 'path',                                                   # high level path
               'point', 'vector', 'pagePoint', 'pageVector',             # point/vector transformations
-              'extents', 'mark', 'getmark', 'addmarks' ]                                               # introspection
+              'extents', 'markpoint', 'getmark', 'addmarks' ]                                               # introspection
 
 for f in functions:
   filled_template = template % (f,f)
@@ -150,17 +150,17 @@ class InsetGuard:
   def __enter__(self):
     global _canvas
     self.i = Inset(*self.i_args,**self.i_kwargs)
-    self.i.begin()
+    # self.i.begin()
     _canvas.gstate.copystyle(self.i)
     pushcanvas(self.i)
     return self.i
 
   def __exit__(self,*args):
-    self.i.end()
+    # self.i.end()
     popcanvas()
     return False
 
-def placetex(text,*args,**kwargs):
+def drawtex(text,*args,**kwargs):
   i = texinset(text)
   if not kwargs.has_key('origin'):
     kwargs['origin']='origin'

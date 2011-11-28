@@ -1,6 +1,6 @@
 from __future__ import division
 from style import updatefromstyle, Style
-from geometry import Vector, Point, toOnePoint
+from geometry import Vector, Point
 from marks import Mark
 import misc 
 import math
@@ -35,10 +35,10 @@ class ArrowHead(Mark):
   def drawto(self,canvas,v):
     with canvas.ctmsave():
       canvas.translate(canvas.currentpoint())
-      vp = canvas.Tv(v)
+      vp = canvas.pageVector(v)
       canvas.scaleto(canvas.linewidth())
-      vpp = canvas.Tvinv(vp)
-      canvas.addpath(stdarrowhead,self.width,self.length,self.wingangle,(0,0),vpp)
+      vpp = canvas.vector(vp)
+      canvas.build(stdarrowhead,self.width,self.length,self.wingangle,(0,0),vpp)
       fc = canvas.fillcolor()
       canvas.setfillcolor(canvas.linecolor())
       canvas.fill()
@@ -47,10 +47,10 @@ class ArrowHead(Mark):
 class ArrowTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
-  def drawto(self,canvas,*args):
-    p = toOnePoint(*args)
+  def drawto(self,canvas,to=(0,0)):
+    p = canvas.point(to)
     v = p-canvas.currentpoint()
-    dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
+    dv = canvas.vector(canvas.linewidth()*self.head.length,-v)
     o = p+dv
     canvas.lineto(o)
     canvas.stroke()
@@ -61,7 +61,7 @@ class ArrowFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,*args):
-    p1 = toOnePoint(*args)
+    p1 = canvas.point(*args)
     p0 = canvas.currentpoint()
     v = p1-p0
     dv = canvas.rescale(v,canvas.linewidth()*self.head.length)
@@ -78,7 +78,7 @@ class ArrowCurveTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
-    p2=toOnePoint(p2); p3=toOnePoint(p3)
+    p2=canvas.point(p2); p3=canvas.point(p3)
     v = p3-p2
 
     dv = canvas.rescale(-v,canvas.linewidth()*self.head.length)
@@ -94,7 +94,7 @@ class ArrowCurveFromTo(Mark):
   def __init__(self,**kwargs):
     self.head = ArrowHead(**kwargs)
   def drawto(self,canvas,p1,p2,p3):
-    p1=toOnePoint(p1); p2=toOnePoint(p2); p3=toOnePoint(p3)
+    p1=canvas.point(p1); p2=canvas.point(p2); p3=canvas.point(p3)
     p0 = canvas.currentpoint()
     
     v = p0-p1
@@ -119,7 +119,7 @@ class SArrowTo(Mark):
     self.head = ArrowHead(**kwargs)
   
   def drawto(self,canvas,tip,sposition=0.5,flip=False):
-    p3 = toOnePoint(tip)
+    p3 = canvas.point(tip)
     p0 = canvas.currentpoint()
     v = (p3-p0)
     vp = Vector(v[1],-v[0])

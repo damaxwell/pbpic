@@ -9,11 +9,20 @@ import math
 dx = Vector(1,0)
 dy = Vector(0,1)
 
+def nobuild(func):
+  def nobuildfunc(self,*args,**kwargs):
+    if self.building:
+      raise exception.BuildTransgression()
+    return func(self,*args,**kwargs)
+  return nobuildfunc
+
 class Canvas:
-  def __init__(self, w=None, h=None, renderer=None, units=None):
+  def __init__(self, w=None, h=None, renderer=None):
     self.gstate = GState();
     self.gstack = []
     self.renderer = renderer
+    
+    self.building = False
 
     self._extents = None
     if (w is not None) or (h is not None):
@@ -28,20 +37,10 @@ class Canvas:
 
       self._extents=BBox((0,0),(w.apply(dx).length(),h.apply(dy).length()))
 
-    # If units for width/length agree then set the page units from them
-    # if units is not None:
-    #   self.units = units
-    # elif w.units() == h.units():
-    #   self.units = w.units()
-    # else:
-    #   self.units = (1*pt).units()
-
     self.marks = [ NamedMarks() ]
-
 
   def begin(self):
     if self.renderer: self.renderer.begin(self._extents)
-    # self.scaleto(self.units)
 
   def end(self):
     if self.renderer: self.renderer.end()
@@ -103,6 +102,7 @@ class Canvas:
   def currentpointexists(self):
     return not self.gstate.path.cp is None
 
+  @nobuild
   def gsave(self):
     self.gstack.append(self.gstate.copy())
     self.gstate._clearctmstack() # Ensure that it is not possible to restore the ctm past a gsave.
@@ -110,7 +110,14 @@ class Canvas:
       self.renderer.gsave()
     return GRestorer(self)
 
+  @nobuild
   def grestore(self):
+    if len(self.gstack) <=0:
+      raise exception.StackUnderflow("Extra grestore")
+    
+    if self.gstack[-1] is None:
+      raise exception.StackUnderflow("Extra grestore during a 'draw' operation.")
+
     self.gstate = self.gstack.pop()
 
     if not self.renderer is None:
@@ -120,33 +127,39 @@ class Canvas:
     self.gstate.ctmsave()
     return CTMRestorer(self)
   def ctmrestore(self):
+    if len(self.gstate.ctmstack) <=0:
+      raise exception.StackUnderflow("Extra ctmrestore")
     self.gstate.ctmrestore()
 
+  @nobuild
   def setlinewidth(self,w):
     if not isinstance(w,Length):      
       lw = self.gstate.linewidth.copy()
       lw.setlength(float(w))
       w=lw
     self.gstate.setlinewidth(w.copy())
-
   def linewidth(self):
     return self.gstate.linewidth
 
+  @nobuild
   def setlinecap(self,cap):
     self.gstate.setlinecap(cap)
   def linecap(self):
     return self.gstate.linecap
 
+  @nobuild
   def setlinejoin(self,join):
     self.gstate.setlinejoin(join)
   def linejoin(self):
     return self.gstate.linejoin
 
+  @nobuild
   def setmiterlimit(self,ml):
     self.gstate.setmiterlimit(ml)
   def miterlimit(self):
     return self.gstate.miterlimit
 
+  @nobuild
   def setdash(self,*args):
     if len(args) == 2:
       dash = args[0]; phase = args[1]
@@ -162,10 +175,12 @@ class Canvas:
   def dash(self):
     return ([d for d in self.gstate.dash[0] ], self.gstate.dash[1])
 
+  @nobuild
   def stroke(self,color=None):
     self.kstroke(color=color)
     self.newpath()
 
+  @nobuild
   def kstroke(self,color=None):
     if self.renderer:
       if not color is None:
@@ -176,10 +191,12 @@ class Canvas:
       else:
         self.renderer.stroke(self.gstate.path,self.gstate)
 
+  @nobuild
   def fill(self,color=None):
     self.kfill(color=color)
     self.newpath()
 
+  @nobuild
   def kfill(self,color=None):
     if self.renderer:
       if not color is None:
@@ -190,10 +207,12 @@ class Canvas:
       else:
         self.renderer.fill(self.gstate.path,self.gstate)
 
+  @nobuild
   def fillstroke(self,fillcolor=None,strokecolor=None):
     self.kfill(fillcolor)
     self.stroke(strokecolor)
 
+  @nobuild
   def clip(self):
     if self.renderer:
       self.renderer.clip(self.gstate.path,self.gstate)
@@ -231,11 +250,13 @@ class Canvas:
   def closepath(self):
     self.gstate.path.close()
 
+  @nobuild
   def setfont(self,font):
     if isinstance(font,str):
       font = pbpfont.findfont(font)
     self.gstate.setfont(font)
 
+  @nobuild
   def setfontsize(self,size):
     if not isinstance(size,Length):
       fs = self.gstate.fontsize.copy()
@@ -246,18 +267,21 @@ class Canvas:
   def fontsize(self):
     return self.gstate.fontsize.copy()
 
+  @nobuild
   def setwritingvector(self,*args):
     v=self.vector(*args)
     self.gstate.setwritingvector(v.copy())
   def writingvector(self):
     return self.gstate.writingvector.copy()
 
+  @nobuild
   def setfontcolor(self,fontcolor):
     self.gstate.setfontcolor(fontcolor)
   def fontcolor(self):
     return self.gstate.fontcolor
     
 
+  @nobuild
   def write(self,s):
     if self.gstate.path.cp is None: 
       raise exception.NoCurrentPoint()
@@ -273,6 +297,7 @@ class Canvas:
   def stringwidth(self,s):    
     raise NotImplementedError()
 
+  @nobuild
   def showglyphs(self,s,fontdescriptor):
     font = sysfont.findcachedfont(fontdescriptor)
     metrics = [ font.metricsForGlyph(c) for c in s ]
@@ -294,19 +319,21 @@ class Canvas:
         return p
     raise KeyError(markname)
 
-  def mark(self,*args):
+  @nobuild
+  def markpoint(self,*args):
     if len(args)==1:
       name=args[0]
-      self.mark(name,currentpagepoint())
+      self.markpoint(name,currentpagepoint())
     if len(args)%2 != 0:
       raise ValueError()
     if len(args)>2:
       for k in range(len(args)/2):
-        self.mark(args[2*k],args[2*k+1])
+        self.markpoint(args[2*k],args[2*k+1])
     else:
       point=self.pagePoint(args[0]);name=args[1]; 
       self.marks[0].addpoint(name,point)
 
+  @nobuild
   def addmarks(self,marker,*args,**kwargs):
     if hasattr(marker,'markup'):
       marker.markup(self,*args,**kwargs)
@@ -323,7 +350,7 @@ class Canvas:
     e.include(self.gstate.ctm.Tinv(self._extents.ul())); e.include(self.gstate.ctm.Tinv(self._extents.ur()))
     return e
 
-  def pageExtents(self):
+  def pageextents(self):
     if self._extents is None:
       raise exception.NoExtents()
     return self._extents.copy()
@@ -334,6 +361,7 @@ class Canvas:
   # 
   # 
   # FIXME: the page->device needs more thought
+  @nobuild
   def sizeconcat(self,tm):
     self.gstate.unitsize.concat(tm)
 
@@ -428,7 +456,7 @@ class Canvas:
         return Point(p[0],p[1])
     elif len(args) == 2:
       return Point(args[0],args[1])
-    raise ValueError()
+    raise ValueError("Unable to convert %s to a point." % args.__str__())
 
 
   def vector(self,*args):
@@ -477,21 +505,49 @@ class Canvas:
       raise ValueError()
     return Vector(x,y)
 
+  @nobuild
   def setlinecolor(self,c):
     self.gstate.setlinecolor(c)
   def linecolor(self):
     return self.gstate.linecolor
 
+  @nobuild
   def setfillcolor(self,c):
     self.gstate.setfillcolor(c)
   def fillcolor(self):
     return self.gstate.fillcolor
 
+  @nobuild
   def setfillrule(self,r):
     self.gstate.setfillrule(r)
   def fillrule(self):
     return self.gstate.fillrule
 
+  def build(self,builder,*args,**kwargs):
+    """Calls on :builder: to add to the current path.  This is done by calling
+    :builder:'s :buildpath: attribute, if present, or simply calling :builder:
+    otherwise. 
+    
+    No  drawing operations may be peformed (though this is not yet enforced).  
+    Upon exit, the current path may be changed, but other aspects of the 
+    graphics state should not be.""" 
+
+    wasBuilding = self.building
+    self.building = True
+    try:
+      at = kwargs.get('at')
+      if at is not None:
+        self.moveto(at)
+        kwargs.pop('at')
+
+      if hasattr(builder,'buildpath'):
+        builder.buildpath(self,*args,**kwargs)
+      elif callable(builder):
+        builder(self,*args,**kwargs)
+      else:
+        raise ValueError("Unable to build a path from %s" % builder)
+    finally:
+      self.building = wasBuilding
 
   # Higher level operations:
   def draw(self,p,*args,**kwargs):
@@ -499,12 +555,19 @@ class Canvas:
     if at is not None:
       self.moveto(at)
       kwargs.pop('at')
-    if callable(p):
-      p(self,*args,**kwargs)
-    elif hasattr(p,'drawto'):
-      p.drawto(self,*args,**kwargs)
-    else:
-      raise TypeError()
+    self.gstack.append(None)
+    try:
+      if hasattr(p,'drawto'):
+        p.drawto(self,*args,**kwargs)
+      elif callable(p):
+        p(self,*args,**kwargs)
+      else:
+        raise TypeError()
+    finally:
+      while self.gstack[-1] is not None:
+        self.gstack.pop()
+      # FIXME: Verify that the gstate was not altered?
+      self.newpath()
 
   def path(self):
     return PathBuilder(self)

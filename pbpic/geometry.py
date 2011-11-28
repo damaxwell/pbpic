@@ -419,7 +419,7 @@ class Path:
   def currentpoint(self):
     return self.cp.copy()
 
-  def drawto(self,r):
+  def buildpath(self,r):
     for (cmd,coords) in self:
       if(cmd==self.MOVETO):
         r.moveto(coords)
@@ -571,7 +571,7 @@ class BBox:
     cbox.ymin = self.ymin
     return cbox
 
-  def drawto(self,canvas):
+  def buildpath(self,canvas):
     canvas.path() + (self.xmin,self.ymin) - (self.xmax,self.ymin) \
                     - (self.xmax,self.ymax) - (self.xmin,self.ymax)
     canvas.closepath()

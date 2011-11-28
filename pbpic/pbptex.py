@@ -61,6 +61,15 @@ class DviCache(userprefs.PersistantCache):
 
 dviCache = DviCache()
 
+_command=r'latex -interaction=nonstopmode'
+_preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}'
+_postamble = r'\end{document}'
+
+def texsetup(command=None,preamble=None,postamble=None):
+  global _command, _preamble, _postamble
+  if command is not None: _command = command
+  if preamble is not None: _preamble = preamble
+  if postamble is not None: _postamble = postamble
 
 
 class TexProcessor:
@@ -73,9 +82,9 @@ class TexProcessor:
 
   def __init__(self,**kwargs):
     # updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
-    self.command=r'latex -interaction=nonstopmode'
-    self.preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}'
-    self.postamble = r'\end{document}'
+    self.command=_command
+    self.preamble = _preamble
+    self.postamble = _postamble
 
     self._dvi = None
     self.errmsg = None
@@ -147,7 +156,7 @@ class DviToInset(tex.dvi.DviReader):
     self.bbox.include(x+w,-y+h)
 
     if self.firstChar:
-      self.canvas.mark((x,-y),'origin')
+      self.canvas.markpoint((x,-y),'origin')
       self.firstChar = False
 
     self.canvas.moveto(x,-y)
@@ -171,7 +180,7 @@ class DviToInset(tex.dvi.DviReader):
 
   def bop(self):
     self.canvas = inset.Inset()
-    self.canvas.begin()
+    # self.canvas.begin()
 
   def eop(self):
     self.canvas.setextents(self.bbox)

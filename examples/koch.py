@@ -17,16 +17,16 @@ def koch(c,n):
   else:
     with c.ctmsave():
       c.scale(1/3.)
-      c.draw(koch,n-1)
+      c.build(koch,n-1)
       with c.ctmsave():
         c.translate(1,0)
         c.rotate(1/6.)
-        c.draw(koch,n-1)
+        c.build(koch,n-1)
         c.translate(1,0)
         c.rotate(-1/3.)
-        c.draw(koch,n-1)
+        c.build(koch,n-1)
       c.translate(2,0)
-      c.draw(koch,n-1)
+      c.build(koch,n-1)
 
 pbpbegin(10*cm,10*cm,'pdf')
 setlinewidth(0.05*pt)
@@ -39,7 +39,7 @@ for l in range(6):
     translate(-0.5,0.5/math.tan(math.pi/3))
     moveto(0,0)
     for k in range(3):
-      draw(koch,5)
+      build(koch,5)
       translate(1,0)
       rotate(-1/3.)
     closepath()

@@ -22,14 +22,14 @@ scaleto(1*cm)
 translate(loc.center)
 
 # Add the triangle
-draw(paths.polygon,v)
+build(paths.polygon,v)
 stroke()
 
 # Add each of the circular wedges
 setfillcolor(color.yellow)
 for k in range(3):
   moveto(v[k])
-  draw(paths.wedge,arc_r,w[k],w[k+1])
+  build(paths.wedge,arc_r,w[k],w[k+1])
 fillstroke()
 
 # Add the vertex labels
@@ -38,7 +38,7 @@ for k in range(3):
   moveto(v[k])           # Move to the vertex.
   wmid = (w[k]+w[k+1])/2 # Points straight into the yellow wedge.
   rmoveto(-3*pt,wmid)  # Offset away from the yellow wedge by 3 pts.
-  placetex(labels[k],origin=locs[k])
+  drawtex(labels[k],origin=locs[k])
 
 # Add the exploding circle
 translate(-1,-1)
@@ -48,11 +48,11 @@ for k in range(3):
   moveto(0,0)
   rmoveto(2*pt,wmid)
   tip = currentpoint()
-  draw(paths.wedge,arc_r,w[k],w[k+1])
+  build(paths.wedge,arc_r,w[k],w[k+1])
   fillstroke()  # Fill color of yellow still used.
 
   moveto(tip+arc_r*wmid) # At middle of outer boundary of exploded wedge.
   rmoveto(3*pt,wmid)     # And a little more
-  placetex(labels[k],origin=loc.border(-wmid))
+  drawtex(labels[k],origin=loc.border(-wmid))
 
 pbpend()

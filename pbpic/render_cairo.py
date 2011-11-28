@@ -92,7 +92,7 @@ class CairoRenderer:
 
     # Draw the path in page coordinates.
     self.ctx.new_path()
-    path.drawto(self)
+    path.buildpath(self)
 
     # # Before stroking, set to pen coordinates.
     u=gstate.unitsize.asTuple()
@@ -117,7 +117,7 @@ class CairoRenderer:
     # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
     pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(pageToDevice)
-    path.drawto(self)
+    path.buildpath(self)
   
     self.ctx.fill()
     self.lastOperation=_Fill
@@ -130,7 +130,7 @@ class CairoRenderer:
     # pageToDevice=cairo.Matrix(*gstate.ptm.asTuple())*self.llOriginMatrix
     pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(pageToDevice)
-    path.drawto(self)
+    path.buildpath(self)
 
     self.ctx.clip()
     self.lastOperation=_Fill
@@ -225,7 +225,7 @@ def ftFontForDescriptor(descriptor):
   if ftFont:
     return ftFont
   ftFont = create_cairo_font_face_for_file(descriptor.path,descriptor.faceindex)
-  ftFontCache[descriptor.path] = ftFont
+  ftFontCache[descriptor] = ftFont
   return ftFont
 
 

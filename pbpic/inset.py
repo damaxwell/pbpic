@@ -3,11 +3,23 @@ from geometry import BBox, AffineTransform
 from render_bbox import BBoxRenderer
 from metric import pt, PagePoint
 import mark
+
 class Inset(Canvas):
   
-  def __init__(self,*args):
-    Canvas.__init__(self,*args)
+  def __init__(self,w=None, h=None,init=None):
+    Canvas.__init__(self,w=w,h=h)
     self.script=[]
+    if init is not None:
+      init.gstate.copystyle(self)
+      self.gstate.ctm = init.gstate.ctm.copy()
+
+  # begin/end don't seem to make sense for an inset.  Or much else
+  # for that matter.
+  def begin(self):
+    raise NotImplementedError()
+
+  def end(self):
+    raise NotImplementedError()
 
   def markup(self,canvas,name='inset',origin=None):
     with canvas.ctmsave():
@@ -47,11 +59,9 @@ class Inset(Canvas):
         args=f[1]; kwargs=f[2]
         fcn=canvas.__class__.__dict__[f[0]]
         fcn(canvas,*args,**kwargs)
-      
 
-        #  'scale', 'rotate', 'rrotate', 'drotate', 'ctmconcat',
   wrapped_methods = [ 'gsave', 'grestore', 'ctmsave', 'ctmrestore',
-                      'setlinewidth', 'setlinecap', 'setlinejoin', 'setmiterlimit', 
+                      'setlinewidth', 'setlinecap', 'setlinejoin', 'setmiterlimit', 'setdash',
                       'kstroke', 'kfill', 'clip', 'setfillrule',
                       'newpath', 
                       'closepath',
@@ -68,11 +78,6 @@ class Inset(Canvas):
     filled_template = template % (m,m,m)
     exec filled_template in globals(), locals()
 
-  # def translate(self,*args):
-  #   p=self.pagePoint(*args)
-  #   self.script.append(('translate',(p,),{}))
-  #   return Canvas.translate(self,p)
-
   def  moveto(self,*args):
     p=self.pagePoint(*args)
     self.script.append(('moveto',(p[0],p[1]),{}))
@@ -87,12 +92,11 @@ class Inset(Canvas):
     if len(args) == 6:
       q = (self.pagePoint(args[0],args[1]),self.pagePoint(args[2],args[3]),self.pagePoint(args[4],args[5]))
     elif len(args) == 3:
-      q = (self.pagePoint(p) for p in args)
+      q = [self.pagePoint(p) for p in args]
     else:
       raise ValueError()
     self.script.append(('curveto',(q[0][0],q[0][1],q[1][0],q[1][1],q[2][0],q[2][1]),{}))
     self.gstate.path.curveto(q[0],q[1],q[2])
-    
 
   def  rmoveto(self,*args):
     p=self.pageVector(*args)
@@ -110,7 +114,7 @@ class Inset(Canvas):
       s += str(c)
       s += '\n'
     return s
-    
+
   def setextents(self,bbox):
     if bbox is None:
       self._extents = None
@@ -119,10 +123,15 @@ class Inset(Canvas):
     # self.markedpoints.setbbox(self._extents)
 
   def markedbox(self):
+    # Returns a box, in page coordinates, that approximately contains
+    # all the contents of the inset.
     r=BBoxRenderer()
     c = Canvas(renderer=r)
     c.begin()
     c.moveto(0,0)
     self.drawto(c)
-    return r.bbox()
+    box = r.bbox()
+    if box.isEmpty():
+      box.include(0,0)
+    return box
 

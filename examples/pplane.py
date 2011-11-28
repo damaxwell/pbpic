@@ -40,7 +40,7 @@ for l in labels:
   v = (Polar(r,t)+Polar(r,t+1/6))/2 # Midpoint of edge
   dv = vector(15*pt,v)              # Additional 15pt away from center
   moveto(v+dv)
-  placetex(l,origin='center')
+  drawtex(l,origin='center')
   t += 1/6
 
 pbpend()

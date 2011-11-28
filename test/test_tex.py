@@ -8,8 +8,8 @@ def TestTexHello():
   pbp.translate(loc.center)
   with pbp.ctmsave():
     pbp.scaleto(1*pt)
-    pbp.draw(pbp.paths.circle,1.,at=(0,0))
+    pbp.build(pbp.paths.circle,1.,at=(0,0))
   pbp.fill(color.red)
   pbp.moveto(0,0)
-  pbp.placetex("Hello")
+  pbp.drawtex("Hello")
   pbp.pbpend()

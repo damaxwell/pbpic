@@ -13,7 +13,7 @@ def graph(canvas,f,x0,x1,N=200):
     canvas.lineto(x,f(x))
 
 def boxaxis(canvas,gbox):
-  canvas.draw(gbox)
+  canvas.build(gbox)
 
 def xtick(canvas):
   canvas.rmoveto(0,-0.5)

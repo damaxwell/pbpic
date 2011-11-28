@@ -18,7 +18,7 @@ def bbox_loc(canvas,loc_name):
 
 template = \
 """def %s(canvas):
-  '''Returns canvas.pageExtents().%s().  This determines the "%s" location on
+  '''Returns canvas.pageextents().%s().  This determines the "%s" location on
   the canvas's bounding box, in page coordinates.'''
   return bbox_loc(canvas,"%s")"""
 for k in bboxcallbacks.keys():
@@ -50,7 +50,7 @@ class border:
       raise ValueError()
   
   def __call__(self,c):
-    extents = c.pageExtents()
+    extents = c.pageextents()
     w=extents.width();h=extents.height()
     vx=self.v[0]; vy=self.v[1]
     r0=abs(w*vy)

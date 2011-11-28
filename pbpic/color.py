@@ -35,3 +35,5 @@ magenta = RGBColor(1,0,1)
 yellow = RGBColor(1,1,0)
 black = GrayColor(1)
 white = GrayColor(0)
+
+periwinkle=RGBColor(69/256.,66/256.,142/256.)

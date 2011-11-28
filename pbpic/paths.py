@@ -189,7 +189,7 @@ def potato(canvas,seed,nodes=False):
       canvas.moveto(p)
       with canvas.ctmsave():
         canvas.scaleto(1*pt)
-        canvas.addpath(box,1)
+        canvas.build(box,1)
 
 def blob(canvas,*args):
   data = [ (args[2*k],args[2*k+1]) for k in range(int(len(args)/2)) ]
