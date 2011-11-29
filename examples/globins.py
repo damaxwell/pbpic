@@ -11,8 +11,10 @@ d=Node();d.add(.3,Node("beta"),.3,Node("delta"))
 e=Node();e.add(1,c,.5,d)
 r=Node();r.add(w,b,1+x+w,e)
 
-style.setstyle(ArrowHead,width=3,length=3,wingangle=1/6.)
-arrow=ArrowTo()
+style.setstyle(arrow,tip=arrow.ArrowHead(width=5,length=5,wingangle=1/6.))
+arrowto=arrow.ArrowTo()
+tiltspreader=arrow.ArrowTo(tip=arrow.TiltSpreaderHead(theta=.1,width=10,length=1))
+
 fancytreefig = trees.TreeFigure(leaf=trees.leafNode,interior=trees.interiorNode,root=trees.interiorNode)
 
 pbpbegin(15*cm,10*cm,'pdf')
@@ -33,24 +35,23 @@ with inset() as bigtree:
   myo_tip = point('tree.ll')-vector(1.3,1)
   root=point('tree.root')
   top=root+vector(0,1)
-  dy=(top.y-myo_tip.y)/3
+  dy=(top.y-myo_tip.y)/2
   moveto(root)
   lineto(top)
   lineto(myo_tip.x,top.y)
-  rlineto(0,-dy)
   p=currentpoint()
   stroke()
-  
-  with gsave():
-    setlinecap('butt')
-    setdash([3,4],1)
-    moveto(p); rlineto(0,-dy)
-    p=currentpoint()
-    stroke()
-  
-  moveto(p); lineto(myo_tip)
-  stroke()
-  
+
+  moveto(p)
+  rmoveto(0,-dy)
+  rmoveto(0,2*pt)
+  draw(tiltspreader,at=p,to=currentpoint())
+
+  moveto(myo_tip)
+  rmoveto(0,dy)
+  rmoveto(0,-2*pt)
+  draw(tiltspreader,at=myo_tip,to=currentpoint())
+    
   moveto(myo_tip)
   draw(trees.leafNode,Node("myoglobin"))
   
@@ -69,11 +70,11 @@ with inset() as bigtree:
   hemo.drawto(getcanvas(),origin=loc.uc,marks='hemo')
   moveto('hemo.cl')
   rmoveto(-3*pt,0)
-  draw(arrow,to=(tree_left,currentpoint().y))
+  draw(arrowto,to=(tree_left,currentpoint().y))
   
   moveto('hemo.cr')
   rmoveto(3*pt,0)
-  draw(arrow,to=(tree_right,currentpoint().y))
+  draw(arrowto,to=(tree_right,currentpoint().y))
 bigtree.setextents(bigtree.markedbox())
 
 draw(bigtree,at=loc.center,origin=loc.center)

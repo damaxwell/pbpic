@@ -32,7 +32,6 @@ def style(obj,keys):
 
 def _onestyle(obj,key,toplevel=True):
   global _stylestack
-
   k = len(_stylestack)-1
   while(k>=0):
     s = _stylestack[k].get(obj)
@@ -68,7 +67,10 @@ def setstyle(obj,**kwargs):
 
 def updatefromstyle(obj,keys,overrides,stylekey=None):
   if stylekey is None:
-    stylekey = obj
+    if hasattr(obj,'__class__'):
+      stylekey = obj.__class__
+    else:
+      stylekey = obj
   d = obj.__dict__
   for k in keys:
     if overrides.has_key(k):

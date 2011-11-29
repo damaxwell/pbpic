@@ -65,34 +65,14 @@ dviCache = DviCache()
 defaultStyle = style.Style(command=r'latex -interaction=nonstopmode',
                            preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
                            postamble = r'\end{document}' )
+
 def setstyle(**kwargs):
   style.setstyle(sys.modules[__name__],**kwargs)
 
-# def texsetup(command=None,preamble=None,postamble=None):
-#   global _command, _preamble, _postamble
-#   if command is not None: _command = command
-#   if preamble is not None: _preamble = preamble
-#   if postamble is not None: _postamble = postamble
-
-
 class TexProcessor:
 
-  # @staticmethod
-  # def defaultStyle():
-  #   return Style(command=r'latex -interaction=nonstopmode',
-  #                              preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
-  #                              postamble = r'\end{document}' )
-    # return Style(tex=Style(command=r'latex -interaction=nonstopmode',
-    #                                    preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
-    #                                    postamble = r'\end{document}' ) )    
-
   def __init__(self,**kwargs):
-    style.updatefromstyle(self,['command','preamble','postamble'],kwargs,stylekey=TexProcessor)
-    # updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
-    # self.command=_command
-    # self.preamble = _preamble
-    # self.postamble = _postamble
-
+    style.updatefromstyle(self,['command','preamble','postamble'],kwargs)
     self._dvi = None
     self.errmsg = None
     
@@ -187,7 +167,6 @@ class DviToInset(tex.dvi.DviReader):
 
   def bop(self):
     self.canvas = inset.Inset()
-    # self.canvas.begin()
 
   def eop(self):
     self.canvas.setextents(self.bbox)
