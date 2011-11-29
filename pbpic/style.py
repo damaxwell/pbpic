@@ -1,162 +1,77 @@
-from exception import StylePropertyNotFound
+import exception, sys
 
-class Style:
-  
-  def __init__(self,*args,**kwargs):
-    self.sdict = {}
-    # FIXME: should allow 'a.b.c' as the first arg
-    if len(args) == 1 and isinstance(args[0],str):
-      s = Style()
-      self.sdict[args[0]] = s
-    else:
-      s = self
-    s.sdict.update(**kwargs)
+_stylestack = [{}]
 
-  def __repr__(self):
-    s = 'Style:\n'
-    for (key,value) in self.sdict.items():
-      s += ('%s: %s' % (key,value))
-    return s
+_stylereport = {}
 
-  def __setitem__(self,item,value):
-    self.setstyle(item,value)
-
-  def __getitem__(self,item):
-    return self.getstyle(item)
-
-  def copy(self):
-    cp = Style()
-    for (key,val) in self.sdict.items():
-      if isinstance(val,Style):
-        cp.sdict[key]=val.copy()
-      else:
-        cp.sdict[key]=val
-
-  def update(self,otherStyle):
-    for (key,value) in otherStyle.sdict.items():
-      if isinstance(value,Style):
-        # if we currently have a style for this value, then recursively update, otherwise clobber
-        currentVal = self.sdict.get(key)
-        if isinstance( currentVal, Style ):
-          currentVal.update(value)
-        else:
-          self.sdict[key] = value
-      else:
-        self.sdict[key] = value
-
-  def getstyle(self,sname):
-    if isinstance(sname,str):
-      sarray = sname.split('.')
-    else:
-      sarray = sname
-    
-    while(len(sarray)>0):
-      try:
-        child = self.sdict[sarray[0]]
-        if len(sarray) == 1:
-          return child
-        else:
-          if isinstance(child,Style):
-            try:
-              return child.getstyle(sarray[1:])
-            except StylePropertyNotFound:
-              pass
-      except KeyError:
-        pass
-      # Shorten the array and try again
-      sarray = sarray[1:]
-
-    raise StylePropertyNotFound(sname)
-
-  def _basedict(self,sname):
-    if isinstance(sname,str):
-      sarray = sname.split('.')
-    else:
-      sarray = sname
-    if len(sarray) == 0:
-      raise ValueError()
-    
-    child = self
-    while len(sarray) > 1:
-      try:
-        child = child.sdict[sarray[0]]
-      except KeyError:
-        for k in sarray[:-1]:
-          nc = Style()
-          child.sdict[k] = nc
-          child = nc
-        sarray = sarray[-1:]
-        break
-      sarray = sarray[1:]
-    return (child,sarray[0])
-
-  def setstyle(self,sname,value):
-    (style,name) = self._basedict(sname)
-    style.sdict[name] = value
-
-  def updatestyle(self,sname,value):
-    (style,name) = self._basedict(sname)
-    currentVal = style.sdict.get(name)
-    if isinstance(currentVal,Style) and isinstance(value,Style):
-      currentVal.update(value)
-    else:
-      style.sdict[name] = value
-
-
-_stylestack = [Style()]
-
-def style(*args):
-  global _stylestack
-  topstyle = _stylestack[-1]
-  if len(args) == 0:
-    return topstyle
-  if len(args) == 1:
-    return topstyle[args[0]]
-  if len(args) != 2:
-    raise ValueError()
-  name = args[0]; default=args[1]
-  try:
-    return topstyle[name]
-  except:
-    return default[name]
-
-def setstyle(*args):
-  global _stylestack
-  if len(args) == 2:
-    name = args[0]; value=args[1]
-    _stylestack[-1].updatestyle(name,value)
-  elif len(args) == 1:
-    value=args[0]
-    _stylestack[-1].update(value)
-
-def updatefromstyle(obj,vars,styleprefix,ldict):
-  topstyle = style()
-  defaultStyle = None
-  for v in vars:
-    # Lookup the style variable in the given dictionary
-    if ldict.has_key(v):
-      obj.__dict__[v]=ldict[v]
-    else:
-      # Append the prefix (if given) to the style variable
-      if (not styleprefix is None) and (len(styleprefix) > 0):
-        sv = styleprefix + '.' + v
-      else:
-        sv = v
-      # Lookup the style variable in the global style
-      try:
-        obj.__dict__[v] = topstyle[sv]
-      except:
-        # That failed, so the style hasn't been specified.  Look it up in the object's default style dictionary.
-        if defaultStyle is None:
-          defaultStyle = obj.defaultStyle()
-        obj.__dict__[v] = defaultStyle[sv]
-
+class Style(dict):
+  def __init__(self,**kwargs):
+    self.update(kwargs)
 
 def stylesave():
   global _stylestack
-  _stylestack.append(_stylestack[-1].copy())
+  _stylestack.append({})
 
-def stylerestore(style):
+def stylerestore():
   global _stylestack
+  if len(_stylestack)<=1:
+    raise exception.StackUnderflow()
   return _stylestack.pop()
 
+def clearstyles():
+  global _stylestack
+  _stylestack = [{}]
+
+def style(obj,keys):
+  if isinstance(keys,str):
+    return _onestyle(obj,keys)
+  rv = {}
+  for k in keys:
+    rv[k] = _onestyle(obj,k)
+  return rv
+
+def _onestyle(obj,key,toplevel=True):
+  global _stylestack
+
+  k = len(_stylestack)-1
+  while(k>=0):
+    s = _stylestack[k].get(obj)
+    if s is not None:
+      if s.has_key(key):
+        return s[key]
+    k-=1
+
+  if(hasattr(obj,'defaultStyle')):
+    defaults = obj.defaultStyle
+    if callable(defaults):
+      defaults = defaults()
+    if defaults.has_key(key):
+      return defaults.get(key)
+
+  if hasattr(obj,'__module__'):
+    return _onestyle(sys.modules[obj.__module__],key)
+
+  if hasattr(obj,'__package__'):
+    p = obj.__package__
+    if (p is not None) and obj.__name__ != p:
+      return _onestyle(sys.modules[obj.__package__],key)
+
+  return None
+
+def setstyle(obj,**kwargs):
+  global _stylestack
+  topstyle = _stylestack[-1]
+  if not topstyle.has_key(obj):
+    topstyle[obj]={}
+
+  topstyle[obj].update(kwargs)
+
+def updatefromstyle(obj,keys,overrides,stylekey=None):
+  if stylekey is None:
+    stylekey = obj
+  d = obj.__dict__
+  for k in keys:
+    if overrides.has_key(k):
+      d[k] = overrides[k]
+    else:
+      d[k] = _onestyle(stylekey,k)

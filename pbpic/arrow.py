@@ -30,7 +30,7 @@ class ArrowHead(Mark):
     return Style(width=3,length=3,wingangle=1/6)
 
   def __init__(self,**kwargs):
-    updatefromstyle(self,('width','length','wingangle'),'arrow',kwargs)
+    updatefromstyle(self,('width','length','wingangle'),kwargs,stylekey=ArrowHead)
 
   def drawto(self,canvas,v):
     with canvas.ctmsave():

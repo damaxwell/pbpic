@@ -1,11 +1,11 @@
-import os, random, string, re, cStringIO
+import os, sys, random, string, re, cStringIO
 from subprocess import Popen, PIPE
 import tex.dvi
 import inset
 from misc import FileSweeper
 from tex.devicefont import FontTable
 from geometry import BBox
-# from style import Style, style, updatefromstyle
+import style
 import color
 from metric import pt
 import userprefs
@@ -61,30 +61,37 @@ class DviCache(userprefs.PersistantCache):
 
 dviCache = DviCache()
 
-_command=r'latex -interaction=nonstopmode'
-_preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}'
-_postamble = r'\end{document}'
 
-def texsetup(command=None,preamble=None,postamble=None):
-  global _command, _preamble, _postamble
-  if command is not None: _command = command
-  if preamble is not None: _preamble = preamble
-  if postamble is not None: _postamble = postamble
+defaultStyle = style.Style(command=r'latex -interaction=nonstopmode',
+                           preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
+                           postamble = r'\end{document}' )
+def setstyle(**kwargs):
+  style.setstyle(sys.modules[__name__],**kwargs)
+
+# def texsetup(command=None,preamble=None,postamble=None):
+#   global _command, _preamble, _postamble
+#   if command is not None: _command = command
+#   if preamble is not None: _preamble = preamble
+#   if postamble is not None: _postamble = postamble
 
 
 class TexProcessor:
 
-  @staticmethod
-  def defaultStyle():
-    return Style(tex=Style(command=r'latex -interaction=nonstopmode',
-                                       preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
-                                       postamble = r'\end{document}' ) )    
+  # @staticmethod
+  # def defaultStyle():
+  #   return Style(command=r'latex -interaction=nonstopmode',
+  #                              preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
+  #                              postamble = r'\end{document}' )
+    # return Style(tex=Style(command=r'latex -interaction=nonstopmode',
+    #                                    preamble = r'\documentclass[12pt]{article}\pagestyle{empty}\begin{document}',
+    #                                    postamble = r'\end{document}' ) )    
 
   def __init__(self,**kwargs):
+    style.updatefromstyle(self,['command','preamble','postamble'],kwargs,stylekey=TexProcessor)
     # updatefromstyle(self,('command','preamble','postamble'),'tex',kwargs)
-    self.command=_command
-    self.preamble = _preamble
-    self.postamble = _postamble
+    # self.command=_command
+    # self.preamble = _preamble
+    # self.postamble = _postamble
 
     self._dvi = None
     self.errmsg = None

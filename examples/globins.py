@@ -1,7 +1,7 @@
 from pbpic import *
 from trees import Node
 import trees
-from pbpic.arrow import ArrowTo
+from pbpic.arrow import ArrowTo, ArrowHead
 
 x=.5;w=.4
 a=Node();a.add(2,Node(r"theta"),1,Node(r"alpha"))
@@ -11,12 +11,12 @@ d=Node();d.add(.3,Node("beta"),.3,Node("delta"))
 e=Node();e.add(1,c,.5,d)
 r=Node();r.add(w,b,1+x+w,e)
 
-arrow = ArrowTo(width=5,length=5,wingangle=1/6.)
+style.setstyle(ArrowHead,width=3,length=3,wingangle=1/6.)
+arrow=ArrowTo()
 fancytreefig = trees.TreeFigure(leaf=trees.leafNode,interior=trees.interiorNode,root=trees.interiorNode)
 
 pbpbegin(15*cm,10*cm,'pdf')
-
-# pbptex.texsetup(preamble = r'\documentclass[12pt]{article}\usepackage[lf]{MinionPro}\pagestyle{empty}\begin{document}')
+style.setstyle(pbptex,preamble = r'\documentclass[12pt]{article}\usepackage[lf]{MinionPro}\pagestyle{empty}\begin{document}')
 
 
 with inset() as bigtree:
