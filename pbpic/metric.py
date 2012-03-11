@@ -195,6 +195,18 @@ class PagePoint:
     self.x=x
     self.y=y
 
+  def __add__(self,v):
+    if isinstance(v,PageVector):
+      return PagePoint(self.x+v.x,self.y+v.y)
+
+  def __sub__(self,v):
+    if isinstance(v,PageVector):
+      return PagePoint(self.x-v.x,self.y-v.y)
+    elif isinstance(v,PagePoint):
+      return PageVector(self.x-v.x,self.y-v.y)
+    else:
+      raise ValueError()
+
   def __repr__(self):
     return 'PagePoint (%g,%g)' % (self.x,self.y)
 
@@ -345,6 +357,9 @@ class Length:
   def __mul__(self,s):
     return Length(self.u,self.r*s)
 
+  def __neg__(self):
+    return Length(self.u,-self.r)
+    
   def __rmul__(self,s):
     return Length(self.u,self.r*s)
 

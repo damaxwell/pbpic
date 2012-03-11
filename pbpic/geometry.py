@@ -94,14 +94,14 @@ class Vector:
   def __neg__(self):
     return Vector(-self.x,-self.y)
 
-  def angle(self):
+  def rangle(self):
     return math.atan2(self.y,self.x)
     
-  def fangle(self):
-    return self.angle()/(2*math.pi)
+  def angle(self):
+    return self.rangle()/(2*math.pi)
   
   def dangle(self):
-    return self.fangle()*360
+    return self.angle()*360
 
   def length(self):
     return math.sqrt(self.x*self.x+self.y*self.y)
@@ -109,6 +109,9 @@ class Vector:
   def unitvector(self):
     l=self.length()
     return Vector(self.x/l,self.y/l)
+
+  def perp(self):
+    return Vector(-self.y,self.x)
 
   def copy(self):
     return Vector(self.x,self.y)

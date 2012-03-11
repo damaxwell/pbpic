@@ -3,11 +3,9 @@ They look like they are 1000 times more than they ought to be.
 
 Courier and "Courier Bold" seem to be transposed; reading from a dfont.
 
-draw should ensure only path ops happen
+loading unicode symbol (sideways heart) from Zapf Dingbats fails
 
-rotations should be in circle fractions by default.
-
-verify currentpoint before show and whereverelse
+Optima Regular is missing the '!'  Why?
 
 who is in charge of ensuring copies are made for a gstate: the canvas
 or the gstate? My guess is that if you have the convention that a
@@ -19,22 +17,32 @@ INITIALIZE GSTATE in the renderer!!!!!
 
 Why am I keeping track of last operation in render_pdf
 
-Done: (dashes are always in pen coordinates) dashes in proper coordinates (i.e. lengths?).
-
-scaleto:  should rescale the coordinate system so that every unit vector
-in user coordinates has length given by Length in the Length's coordinate system, and such that the current dx is preserved, and such that the 
-current origin is preserved.
-
-Done: setlinewidth: should set things up so that lines are drawn in the Length's coordinate system
-
-Done: setfontsize: What should I do for a Length?
-
-Done: How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
-Answer: For now page size set only in __init__, never in begin.  At least its in just one place this way.
-
 Vertical metrics for true type fonts
 
 Path cache should either not store a relative path or code getting a path from the cache should verify the file exists (and if not, try for real)
+
+--------------
+|    Done    |
+--------------
+
+# draw should ensure only path ops happen
+
+# rotations should be in circle fractions by default.
+
+# verify currentpoint before show and whereverelse
+
+# Done: (dashes are always in pen coordinates) dashes in proper coordinates (i.e. lengths?).
+
+# scaleto:  should rescale the coordinate system so that every unit vector
+in user coordinates has length given by Length in the Length's coordinate system, and such that the current dx is preserved, and such that the 
+current origin is preserved.
+
+# Done: setlinewidth: should set things up so that lines are drawn in the Length's coordinate system
+
+# Done: setfontsize: What should I do for a Length?
+
+# Done: How do you specify the page size?  Right now you can give w/h in __init__ or w/h/extents in begin.  Why specify in init? How do these two mechanisms get along?
+Answer: For now page size set only in __init__, never in begin.  At least its in just one place this way.
 
 Done: cache DVIs
 

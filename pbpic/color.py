@@ -13,10 +13,11 @@ class GrayColor:
     return 'GrayColor(%g)' % self.g
     
 class RGBColor:
-  def __init__(self,r,g,b):
-    self.r=r
-    self.g=g
-    self.b=b
+  def __init__(self,r,g,b,scale=1.):
+    scale = float(scale)
+    self.r=r/scale
+    self.g=g/scale
+    self.b=b/scale
   
   def renderto(self,r):
     r.setrgbcolor(self.r,self.g,self.b)
@@ -36,4 +37,6 @@ yellow = RGBColor(1,1,0)
 black = GrayColor(1)
 white = GrayColor(0)
 
-periwinkle=RGBColor(69/256.,66/256.,142/256.)
+periwinkle=RGBColor(69,66,142,scale=256)
+burgundy=RGBColor(171,32,119,scale=256)
+lime=RGBColor(33,177,50,scale=256)

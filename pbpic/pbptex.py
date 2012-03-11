@@ -143,7 +143,7 @@ class DviToInset(tex.dvi.DviReader):
     self.bbox.include(x+w,-y+h)
 
     if self.firstChar:
-      self.canvas.markpoint((x,-y),'origin')
+      self.canvas.markpoint('origin',(x,-y))
       self.firstChar = False
 
     self.canvas.moveto(x,-y)

@@ -25,6 +25,8 @@ for k in bboxcallbacks.keys():
   filled_template = template % (k,k,bboxcallback_longnames[k],k)
   exec filled_template in globals()
 
+east=cr; west=cl; north=uc; south=lc; nw=ul; ne=ur; sw=ll; se=lr
+
 class border:
   """Determines the location on the border of the canvas' extents
   where a ray from the center of the extents pointing in

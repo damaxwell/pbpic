@@ -4,7 +4,7 @@ from geometry import Vector, Point
 import misc 
 import math
 import types
-
+import paths
 
 def defaultStyle():
   return Style(tip=ArrowHead)
@@ -66,7 +66,7 @@ class ArrowHead:
 
   @staticmethod
   def defaultStyle():
-    return Style(width=3,length=3,wingangle=1/6)
+    return Style(width=5,length=5,wingangle=1/6)
 
   def __init__(self,**kwargs):
     updatefromstyle(self,('width','length','wingangle'),kwargs)
@@ -209,6 +209,58 @@ class ArrowCurveFromTo(ArrowFromTo):
 
     canvas.moveto(q3)
     canvas.draw(self.totip,v)
+
+class ArcArrowTo(ArrowTo):
+
+  def drawto(self,canvas,to=[1,0],s=.2):
+    
+    p0=canvas.currentpoint()
+    p1=canvas.point(to)
+    v=p1-p0
+    a=p0+v/2
+    vp = v.perp().unitvector()
+    eps=0.001
+    if abs(s)<eps:
+      if s<0:
+        s=-eps
+      else:
+        s=eps
+
+    L=v.length()/2    
+    H = L/2*s*(1/s/s)
+
+    R = math.sqrt(H*H+L*L)
+
+    c=a+vp*H
+
+    w=p1-c
+    wp=w.perp()
+    dv=canvas.vector(canvas.linewidth()*self.tip.headlength(),wp)
+    q1=p1+dv
+
+    pp0=canvas.pagePoint(p0)
+
+    with canvas.ctmsave():
+      canvas.translate(q1)
+      canvas.rotate((q1-c).angle())
+      
+      p0=canvas.point(pp0)
+
+      L=-p0.x; H=p0.y
+      m= (L*L-H*H)/(2*L)
+      R=(L-m)
+      
+      c=canvas.point(-L+m,0)
+      
+      canvas.moveto(c)
+      canvas.lineto(0,0)
+      
+      canvas.newpath()
+      canvas.build(paths.arc,c,R,0,(p0-c).angle())
+      canvas.stroke()
+      
+      canvas.moveto(0,0)
+      canvas.draw(self.tip,[0,-1])
 
 class SArrowTo(ArrowTo):
   

@@ -24,14 +24,14 @@ with inset() as basictree:
   scale(1,0.5)
   draw(basictreefig,node=root,at=(0,0))
 basictree.setextents(basictree.markedbox())
-basictree.markpoint(loc.lc,'lc')
+basictree.markpoint('lc',loc.lc)
 
 with inset() as fancytree:
   scaleto(1*cm)
   scale(1,0.5)
   draw(fancytreefig,node=root,at=(0,0))
 fancytree.setextents(fancytree.markedbox())
-fancytree.markpoint(loc.lc,'lc')
+fancytree.markpoint('lc',loc.lc)
 
 h=basictree.pageextents().height()
 w1=basictree.pageextents().width()

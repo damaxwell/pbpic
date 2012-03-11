@@ -3,13 +3,16 @@ from math import cos, sin, sqrt, pi
 from geometry import Point, Vector, Polar
 import random
 
-def arc(canvas,c,r,t0,t1):
-  """Draws a circular arc to the path of canvas with center c and radius r from cf angle t0 to cf angle t1.  If t0 is larger than t1,
-  then t1 is increased by the least integer that makes it bigger than t1.  If no currentpoint exists, an initial moveto is done
-  to the start of the arc, otherwise a lineto is performed.
+def arc(canvas,center=(0,0),r=0,t0=0,t1=0.5):
+  """Draws a circular arc to the path of canvas with center c and radius r from cf angle t0 to cf angle t1.
+  If no currentpoint exists, an initial moveto is done to the start of the arc, otherwise a lineto is performed.
   """
-  while t1<t0:
-    t1+=1
+  c=center
+  s=1
+  if t1<t0:
+    s=-1
+  # while t1<t0:
+  #   t1+=1
   xc = c[0]; yc=c[1]
   x0 = xc+r*cos(2*pi*t0); y0 = yc+r*sin(2*pi*t0);
   if canvas.currentpointexists():
@@ -18,12 +21,12 @@ def arc(canvas,c,r,t0,t1):
     canvas.moveto(x0,y0)
   tp = t0
   while True:
-    tp += 0.25
-    if tp > t1-0.1:
+    tp += s*0.25
+    if s*(t1-tp) < 0.1:
       tp = t1
     x1 = xc+r*cos(2*pi*tp); y1 = yc+r*sin(2*pi*tp);
-    _arcpath(canvas,c,r,x0,y0,x1,y1)
-    if tp >= t1:
+    canvas.curveto(*_arcpath(canvas,c,r,x0,y0,x1,y1))
+    if s*tp >= s*t1:
       break
     x0 = x1; y0 = y1
 
@@ -39,7 +42,7 @@ def _arcpath(canvas,c,r,x0,y0,x3,y3):
   x1 = x0 - k*ya; y1 = y0 + k*xa
   x2 = x3 + k*yb; y2 = y3 - k*xb
 
-  canvas.curveto(x1,y1,x2,y2,x3,y3)
+  return (x1,y1,x2,y2,x3,y3)
 
 def circle(canvas,r=1):
   """Adds a closed circle to the path of canvas with center c and radius r. If a currentpoint exists, the box is centered at it, 
@@ -56,8 +59,8 @@ def wedge(canvas,r=1,v1=[0,1],v2=[1,0]):
   
   p0 = canvas.currentpoint()
   canvas.moveto(p0)
-  t1=Vector(v1[0],v1[1]).fangle()
-  t2=Vector(v2[0],v2[1]).fangle()
+  t1=Vector(v1[0],v1[1]).angle()
+  t2=Vector(v2[0],v2[1]).angle()
   arc(canvas,p0,r,t1,t2)
   canvas.closepath()
 

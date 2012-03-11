@@ -1,4 +1,6 @@
-import math
+import math, types
+from style import updatefromstyle, Style
+from pbpic import pt
 
 def graph(canvas,f,x0,x1,N=200):
   dx = float(x1-x0)/N
@@ -52,3 +54,35 @@ def ylogticks(canvas,n=10,base=10,minor=0.25):
     y+=dy
   canvas.moveto(x0-0.5,y0+1)
   canvas.rlineto(1,0)
+
+
+def defaultStyle():
+  return Style(ticklength=2*pt)
+
+class XTick:
+  def __init__(self,**kwargs):
+    updatefromstyle(self,('ticklength',),kwargs)
+  def drawto(self,canvas):
+    canvas.rmoveto(0,-self.ticklength/2)
+    canvas.rlineto(0,self.ticklength)
+    canvas.stroke()
+class XUpTick(XTick):
+  def drawto(self,canvas):
+    canvas.rlineto(0,self.ticklength/2)
+    canvas.stroke()
+class XDownTick(XTick):
+  def drawto(self,canvas):
+    canvas.rlineto(0,-self.ticklength/2)
+    canvas.stroke()
+
+class XTicks:
+  @staticmethod
+  def defaultStyle():
+    return Style(xtick=XTick())
+  def __init__(self,**kwargs):
+    updatefromstyle(self,('xtick',),kwargs)
+    if type(self.xtick) == types.ClassType:
+      self.xtick = self.xtick()  
+  def drawto(self,canvas,x=[0,1],y=0):
+    for xc in x:
+      canvas.draw(self.xtick,at=(xc,y))

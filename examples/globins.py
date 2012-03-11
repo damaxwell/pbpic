@@ -26,10 +26,10 @@ with inset() as bigtree:
   moveto(0,0)
   with inset() as tree:
     scaleto(1*cm)
-    markpoint((0,0),'root')
+    markpoint('root',(0,0))
     draw(fancytreefig,r,at='root')
   tree.setextents(tree.markedbox())
-  tree.markpoint(loc.ll,'ll',loc.lr,'lr');
+  tree.markpoint('ll',loc.ll,'lr',loc.lr);
   addmarks(tree,'tree')
 
   myo_tip = point('tree.ll')-vector(1.3,1)
@@ -66,7 +66,7 @@ with inset() as bigtree:
   rmoveto(0,-6*pt)
   p=currentpoint()
   hemo = texinset(r'h\ae moglobins')
-  hemo.markpoint(loc.cl,'cl',loc.cr,'cr')
+  hemo.markpoint('cl',loc.cl,'cr',loc.cr)
   hemo.drawto(getcanvas(),origin=loc.uc,marks='hemo')
   moveto('hemo.cl')
   rmoveto(-3*pt,0)

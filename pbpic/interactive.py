@@ -25,7 +25,7 @@ def popcanvas():
   _canvas = _canvasstack.pop()
 
 template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
-functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'ctmconcat',  # methods that affect the CTM
+functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'ctmconcat',  'window', # methods that affect the CTM
               'setlinewidth', 'linewidth', 'setlinecolor', 'linecolor',  # methods that affect the line state 
               'setlinecap', 'linecap', 'setlinejoin', 'linejoin', 'setdash', 'dash',
               'setmiterlimit', 'miterlimit',
@@ -33,8 +33,9 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'gsave', 'grestore', 'ctmsave', 'ctmrestore',              # methods that affect save/restore
               'stroke', 'kstroke', 'fill', 'kfill', 'fillstroke',        # methods that stroke or fill
               'clip',                                                    # clipping path
-              'currentpointexists', 'currentpoint',                      # current point
+              'currentpointexists', 'currentpoint', 'currentpath',      # current point/path
               'newpath', 'moveto', 'lineto', 'closepath',                # path construction
+              'curveto', 'vcurveto',
               'rmoveto', 'rlineto',
               'write', 'setfont', 
               'setfontsize', 'fontsize', 'setwritingvector', 'writingvector',

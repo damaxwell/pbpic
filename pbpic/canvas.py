@@ -84,6 +84,14 @@ class Canvas:
       tm.dilate(w.length())
     self.gstate.ctm = tm
 
+  def window(self, oldRect,newRect):
+    hf = oldRect.width()/newRect.width()
+    vf = oldRect.height()/newRect.height()
+
+    self.translate( oldRect.ll() )
+    self.scale(hf,vf)
+    self.translate(-newRect.ll())
+
   def ctmconcat(self,tm):
     self.gstate.ctm.concat(tm)
 
@@ -102,6 +110,12 @@ class Canvas:
   def currentpointexists(self):
     return not self.gstate.path.cp is None
 
+  def currentpath(self):
+    path = self.gstate.path.copy()
+    Tinv = self.gstate.ctm.inverse()
+    path.apply(Tinv)
+    return path
+
   @nobuild
   def gsave(self):
     self.gstack.append(self.gstate.copy())
@@ -116,7 +130,7 @@ class Canvas:
       raise exception.StackUnderflow("Extra grestore")
     
     if self.gstack[-1] is None:
-      raise exception.StackUnderflow("Extra grestore during a 'draw' operation.")
+     raise exception.StackUnderflow("Extra grestore during a 'draw' operation.")
 
     self.gstate = self.gstack.pop()
 
@@ -239,6 +253,17 @@ class Canvas:
       raise ValueError()
     self.gstate.path.curveto(q[0],q[1],q[2])
 
+  def vcurveto(self,*args):
+    if len(args) == 6:
+      q = [self.pageVector(args[0],args[1]),self.pageVector(args[2],args[3]),self.pagePoint(args[4],args[5])]
+    elif len(args) == 3:
+      q = [ self.pageVector(args[0]), self.pageVector(args[1]), self.pagePoint(args[2]) ]      
+    else:
+      raise ValueError()
+    self.gstate.path.curveto(self.currentpagepoint()+q[0],q[2]-q[1],q[2])
+
+
+
   def rmoveto(self,*args):
     v = self.pageVector(*args)
     self.gstate.path.rmoveto(v)
@@ -294,8 +319,14 @@ class Canvas:
       raise exception.NoFont("A font must be set before calling 'charpath'.")
     return self.gstate.font.charpath(c)
 
-  def stringwidth(self,s):    
-    raise NotImplementedError()
+  def stringwidth(self,s):
+    tm=self.gstate.fonttm()
+    pageWidth = tm.Tv(self.gstate.font.stringWidth(s))
+    userWidth = self.gstate.ctm.Tvinv(pageWidth)
+    return userWidth
+    # print self.gstate.fontsize
+    # return self.gstate.ctm.Tvinv(self.gstate.fontsize*self.gstate.font.stringWidth(s))
+#    raise NotImplementedError()
 
   @nobuild
   def showglyphs(self,s,fontdescriptor):
@@ -319,21 +350,20 @@ class Canvas:
         return p
     raise KeyError(markname)
 
-  @nobuild
   def markpoint(self,*args):
     if len(args)==1:
       name=args[0]
-      self.markpoint(name,currentpagepoint())
+      self.markpoint(name,self.currentpoint())
+      return
     if len(args)%2 != 0:
       raise ValueError()
     if len(args)>2:
       for k in range(len(args)/2):
         self.markpoint(args[2*k],args[2*k+1])
     else:
-      point=self.pagePoint(args[0]);name=args[1]; 
+      point=self.pagePoint(args[1]);name=args[0]; 
       self.marks[0].addpoint(name,point)
 
-  @nobuild
   def addmarks(self,marker,*args,**kwargs):
     if hasattr(marker,'markup'):
       marker.markup(self,*args,**kwargs)
