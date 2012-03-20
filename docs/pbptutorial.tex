@@ -1,0 +1,533 @@
+\documentclass[12pt]{article}
+\usepackage[left=1in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage{pbpic,graphicx}
+\usepackage{amsmath,amsfonts}
+\usepackage[lf]{MinionPro}
+\usepackage{fancyvrb}
+\def\prg#1{{\tt #1}}
+\def\pbp{Proof by Picture }
+\def\Python{python}
+\def\cmd#1{{\tt #1}}
+\def\file#1{{\tt #1}}
+\def\code#1{{\tt #1}}
+\def\define#1{{\bf #1}}
+\usepackage{listings}
+\lstnewenvironment{snippet}{\lstset{language=Python,xleftmargin=12pt, xrightmargin=12pt,basicstyle=\footnotesize\ttfamily,escapechar=|}}{}
+
+\begin{document}
+\section{Introduction}
+Proof by Picture is a package for making mathematical diagrams
+using the Python programming language.  This document teaches how to use 
+Proof by Picture by walking through a number of
+increasingly sophisticated diagrams.  Before beginning
+the tutorial you will want to have installed Proof by Picture according to
+the installation guide, and verified that you can run Python to
+create a diagrams with it. For example, save the following to the file \file{exbox.py}.
+
+\begin{snippet}
+from pbpic import *
+
+pbpbegin(1*inch,1*inch,'pdf')
+
+scaleto(1*inch)
+
+build(extents()); stroke()
+
+moveto(0,0); lineto(1,1)
+moveto(0,1); lineto(1,0)
+stroke()
+
+pbpend()
+\end{snippet}
+
+Then from the command line issue the command \file{python exbox.py}.
+If all has gone well the result will be the file \file{exbox.pdf}
+which will contain 1 inch square figure with a box and an ex.
+
+\par\vskip12pt  \hfil\begin{pbpic}<1*inch,1*inch>
+scaleto(1*inch)
+
+build(extents()); stroke()
+
+moveto(0,0); lineto(1,1)
+moveto(0,1); lineto(1,0)
+stroke()  
+\end{pbpic}
+
+\section{Euclid Book I Proposition 1}
+The first proposition of Euclid's Elements states that 
+given a line segment $AB$, one can
+construct an equilateral triangle such that
+its base is $AB$.
+
+\hfil\begin{pbpic}<7*cm,5*cm>
+scaleto(1*cm)
+translate(loc.center)
+
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c); build(paths.circle,r=R)
+  stroke()
+
+setlinewidth(1*pt)
+moveto(A); lineto(B); lineto(C); closepath();
+stroke()
+
+moveto(A); rmoveto(-4*pt,0)
+drawtex("$A$",origin=loc.east)
+
+moveto(B); rmoveto(4*pt,0)
+drawtex("$B$",origin=loc.west)
+\end{pbpic}
+
+The starting point for making this diagram in Proof by Picture is the
+following code block.
+\begin{snippet}
+from pbpic import *
+
+pbpbegin(7*cm,5*cm,'pdf')
+
+pbpend()
+\end{snippet}
+These three commands constitute a minimal Proof by Picture diagram.
+The \code{pbpbegin} command sets up the dimensions of the figure
+(in this case it is 7cm wide and 5cm high) and the desired output file
+and format.  We'll generate a PDF diagram, and the file name is
+derived from the name of the Python file containing the diagram commands.
+For example, if this minimal diagram was described in the file \file{euclid-I.1.py} then the output would be saved to \file{euclid-I.1.pdf}.
+All of the drawing is done between 
+\code{pbpbegin} and  the terminating \code{pbpend}
+that writes the final diagram to the output file.
+
+The default coordinate system for a diagram has its origin
+in the lower-left corner and has its unit size selected
+so that one unit is 1  point (i.e. $1/72$ of an inch).
+Moving
+in the positive $x$-direction corresponds to moving right, while moving
+in the positive $y$-direction corresponds to moving up.  We set up
+a more convenient coordinate system for our picture via
+\begin{snippet}
+scaleto(1*cm)
+translate(loc.center)
+\end{snippet}
+The first command rescales the unit length so that one unit corresponds to 
+1cm, and the second translates the origin of the coordinate system 
+so that it lies at the center of the diagram.
+
+\hfil\begin{pbpic}<8*cm,6*cm>
+import pbpic.arrow
+arrowto=arrow.ArrowTo();
+
+W=7.;H=5.
+
+scaleto(1*cm)
+translate(0.5,0.5)
+
+with gsave():
+  moveto(0,0); build(paths.rect,w=W,h=H)
+  clip()
+  
+  setlinewidth(2)
+  setlinecolor(color.GrayColor(0.2))
+  moveto(-0.5,-0.5); build(paths.vlines,h=H+1,M=int(W)+2)
+  moveto(-0.5,-0.5); build(paths.hlines,w=W+1,N=int(H)+2)
+  stroke()
+
+moveto(0,0); build(paths.rect,w=7,h=5)
+stroke()
+
+translate(W/2,H/2)
+moveto(0,0)
+draw(arrowto,(1,0))
+moveto(0,0)
+draw(arrowto,(0,1))
+\end{pbpic}
+
+The circles in the diagram will have radius $R=1.5$cm, so the
+points $A$ and $B$ will have coordinates $(-R/2,0)$ and $(R/2,0)$
+in the new coordinate system. The location of the third vertex
+of the triangle can be computed easily using a little trigonometry,
+but it is easier to let the computer do the work.
+\begin{snippet}
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+\end{snippet}
+The `\code{with ctmsave():}' command saves the current coordinate system.
+At the exit of the code block, the coordinate system is reset to whatever
+it was when the \code{ctmsave} command was issued.  For the record, \code{ctm}
+stands for `current transformation matrix'; we'll say more about transformation matrices
+later.  In this example, we translate the origin so that it lies on the
+point $A$ and then rotate through 1/6 of a circle. 
+
+\hfil\begin{pbpic}<8*cm,6*cm>
+import pbpic.arrow
+arrowto=arrow.ArrowTo();
+
+W=7.;H=5.
+
+scaleto(1*cm)
+translate(loc.center)
+
+R=1.5
+A=pagePoint(-R/2,0)
+B=pagePoint(R/2,0)
+
+with gsave():
+
+  moveto(-W/2,-H/2); build(paths.rect,w=W,h=H)
+  clip()
+  
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+  setlinewidth(2)
+  setlinecolor(color.GrayColor(0.2))
+  moveto(-5,-5); build(paths.vlines,h=10,M=11)
+  moveto(-5,-5); build(paths.hlines,w=10,N=11)
+  stroke()
+
+moveto(-W/2,-H/2); build(paths.rect,w=W,h=H)
+stroke()
+
+with ctmsave():
+  translate(A)
+  scaleto(1*pt)
+  moveto(A); build(paths.circle,r=2)
+  moveto(C); build(paths.circle,r=2)  
+  fill()
+
+moveto(A); rmoveto(-0*pt,-4*pt);
+drawtex('$A$',origin=loc.north)
+
+moveto(C); rmoveto(4*pt,0*pt);
+drawtex('$C$',origin=loc.west)
+
+
+translate(A)
+rotate(1./6)
+moveto(0,0)
+draw(arrowto,(1,0))
+moveto(0,0)
+draw(arrowto,(0,1))
+
+\end{pbpic}
+
+In the new coordinate system, $C$ lies at the point $(R,0)$.  We
+save the location of this point using the command \code{C=pagePoint(R,0)}.
+Now \code{C} contains a \code{PagePoint} object that represents a point 
+on the page without reference to any particular coordinate system.
+
+The next step is to draw the two circles.  Marks on the page
+in Proof by Picture figure are described by a fundamental object known
+as a path.  To draw a circle, we first build the path corresponding
+to the circle, and then stroke it.
+\begin{snippet}
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c);
+  build(paths.circle,r=R)
+  stroke()
+\end{snippet}
+At any moment while drawing a Proof by Picture diagram, there is a notion
+of the current path.  There are primitive path construction commands, e.g.
+\code{moveto}, \code{lineto}, \code{curveto}, as well as a mechanism for
+constructing more elaborate paths based on these primitives using the
+\code{build} command.  
+Associated with the current path is the notion of the \define{current point}, which is the last location mentioned in the current path. 
+To build a circle, we start with a \code{moveto} command 
+which effectively relocates the current point without 
+adding anything of substance to the path.  Next, 
+\code{build(paths.circle,r=R)} adds a circle to the current path.
+The circle is centered at the current point and has 
+the specified radius.  The \code{stroke} command draws the outline
+of the current path to the page, and then clears the current path.
+The \code{setlinewidth} command issued at the start of the code
+block indicates that all subsequent stroke commands should
+be drawn with a line width of $1/2$ of a point.  The default
+line width in Proof by Picture is 1pt, so the resulting
+circles are drawn thinner than the default.
+After drawing the two circles, the diagram looks as follows.
+
+\hfil\begin{pbpic}<8*cm,6*cm>
+import pbpic.arrow
+arrowto=arrow.ArrowTo();
+
+W=7.;H=5.
+
+scaleto(1*cm)
+translate(0.5,0.5)
+
+with gsave():
+  moveto(0,0); build(paths.rect,w=W,h=H)
+  clip()
+  
+  setlinewidth(2)
+  setlinecolor(color.GrayColor(0.2))
+  moveto(-0.5,-0.5); build(paths.vlines,h=H+1,M=int(W)+2)
+  moveto(-0.5,-0.5); build(paths.hlines,w=W+1,N=int(H)+2)
+  stroke()
+
+moveto(0,0); build(paths.rect,w=7,h=5)
+stroke()
+
+translate(W/2,H/2)
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c);
+  build(paths.circle,r=R)
+  stroke()
+\end{pbpic}
+
+The path for the equilateral triangle can be built
+using primitive path building commands.
+\begin{snippet}
+moveto(A); lineto(B); lineto(C); closepath()
+stroke()
+\end{snippet}
+This code block moves the current point to $A$ with  \code{moveto}, 
+and draws a straight lines to $B$ and $C$ with \code{lineto} commands.
+The \code{closepath} command draws a straight back to $A$ and indicates 
+that a loop has been created in the current path.  A more compact
+and legible alternative is to build a polygon.
+\begin{snippet}
+build(paths.polygon,[A,B,C])
+\end{snippet}
+
+The triangle should be drawn with a heavier line than the circles,
+since we want it to be the focus of the figure.  So we set the line width
+to 1pt before issuing the \cmd{stroke} command.
+\begin{snippet}
+setlinewidth(1*pt)
+build(paths.polygon,[A,B,C])
+stroke()
+\end{snippet}
+
+\hfil\begin{pbpic}<8*cm,6*cm>
+import pbpic.arrow
+arrowto=arrow.ArrowTo();
+
+W=7.;H=5.
+
+scaleto(1*cm)
+translate(0.5,0.5)
+
+with gsave():
+  moveto(0,0); build(paths.rect,w=W,h=H)
+  clip()
+  
+  setlinewidth(2)
+  setlinecolor(color.GrayColor(0.2))
+  moveto(-0.5,-0.5); build(paths.vlines,h=H+1,M=int(W)+2)
+  moveto(-0.5,-0.5); build(paths.hlines,w=W+1,N=int(H)+2)
+  stroke()
+
+moveto(0,0); build(paths.rect,w=7,h=5)
+stroke()
+
+translate(W/2,H/2)
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c);
+  build(paths.circle,r=R)
+  stroke()
+  
+setlinewidth(1.*pt)
+build(paths.polygon,[A,B,C])
+stroke()
+\end{pbpic}
+
+The labels are added to the diagram using the \code{drawtex} command,
+which is used to add text generated by LaTeX to the figure.
+\begin{snippet}
+moveto(A); rmoveto(-4*pt,0)
+drawtex("$A$",origin=loc.east)
+\end{snippet}
+These command move the current point to $A$ and then shift
+the currently point to the left by 4pt using \code{rmoveto} (relative
+move to).  The \code{drawtex} command makes a little figure that contains
+the letter $A$, and then places it so that its `easterly' boundary point is set down on top of the current point.  Adding the label at $B$ is
+done similarly, with adjustments as needed to account for the mirror-image
+directions.
+\begin{snippet}
+moveto(B); rmoveto(4*pt,0)
+drawtex("$B$",origin=loc.west)
+\end{snippet}
+
+\hfil\begin{pbpic}<8*cm,6*cm>
+import pbpic.arrow
+arrowto=arrow.ArrowTo();
+
+W=7.;H=5.
+
+scaleto(1*cm)
+translate(0.5,0.5)
+
+with gsave():
+  moveto(0,0); build(paths.rect,w=W,h=H)
+  clip()
+  
+  setlinewidth(2)
+  setlinecolor(color.GrayColor(0.2))
+  moveto(-0.5,-0.5); build(paths.vlines,h=H+1,M=int(W)+2)
+  moveto(-0.5,-0.5); build(paths.hlines,w=W+1,N=int(H)+2)
+  stroke()
+
+moveto(0,0); build(paths.rect,w=7,h=5)
+stroke()
+
+translate(W/2,H/2)
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c);
+  build(paths.circle,r=R)
+  stroke()
+  
+setlinewidth(1.*pt)
+build(paths.polygon,[A,B,C])
+stroke()
+
+moveto(A); rmoveto(-4*pt,0)
+drawtex("$A$",origin=loc.east)
+
+moveto(B); rmoveto(4*pt,0)
+drawtex("$B$",origin=loc.west)
+\end{pbpic}
+
+The entire code for the figure is given in Listing \ref{lst:euclidI1}
+\begin{snippet}
+from pbpic import *
+
+pbpbegin(7*cm,5*cm,'pdf')
+
+scaleto(1*cm)
+translate(loc.center)
+
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c); build(paths.circle,r=R)
+  stroke()
+
+setlinewidth(1*pt)
+moveto(A); lineto(B); lineto(C); closepath();
+stroke()
+
+moveto(A); rmoveto(-4*pt,0)
+drawtex("$A$",origin=loc.east)
+
+moveto(B); rmoveto(4*pt,0)
+drawtex("$B$",origin=loc.west)
+
+pbpend()
+\end{snippet}
+
+\subsection{Commentary}
+
+This behaviour can be overridden by giving the full file name as the third argument to \code{pbpbegin}, in which case the extension of the 
+file name is used
+to determine the output format.
+
+You
+can determine the coordinates of \code{C} in the whatever the current
+coordinate system happens to be using \code{point(C)}.
+
+Angles in Proof by Picture
+are usually specified in fractions of a circle.  A little care is needed
+with factions in Python: by default the division of two integers results
+in an integer, so \code{1/6} would be zero.  You can remedy this by
+either writing \code{1./6} or issuing \code{from \_\_future\_\_ import division}
+at the start of your document, which will result in the division of
+any two integers yielding a floating point number. 
+
+ 
+To describe the locations of the circles and triangles in the page, we'll 
+need the three vertices of the triangle.  The points $A$ and $B$ are easy
+to compute
+The circles will have a radius
+of 1.2cm, and the points $A$ and $B$ are the centers of these circles.
+These points are easy to compute, 
+
+When drawing at
+the most elementary level, one builds a path and then 
+
+
+
+The full program for this figure is given in Listing \ref{lst:ecuildI1}.
+
+\begin{snippet}
+from pbpic import *
+
+pbpbegin(7*cm,5*cm,'pdf')
+
+scaleto(1*cm)
+translate(loc.center)
+
+R=1.5
+A=point(-R/2,0)
+B=point(R/2,0)
+with ctmsave():
+  translate(A)
+  rotate(1./6)
+  C=pagePoint(R,0)
+
+setlinewidth(0.5*pt)
+for c in [A,B]:
+  moveto(c); build(paths.circle,r=R)
+  stroke()
+
+setlinewidth(1*pt)
+moveto(A); lineto(B); lineto(C); closepath();
+stroke()
+
+moveto(A); rmoveto(-4*pt,0)
+drawtex("$A$",origin=loc.east)
+
+moveto(B); rmoveto(4*pt,0)
+drawtex("$B$",origin=loc.west)
+
+pbpend()
+\end{snippet}
+
+
+
+
+\end{document}

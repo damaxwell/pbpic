@@ -1,0 +1,105 @@
+%& -shell-escape
+\documentclass[12pt]{article}
+\usepackage{pbpic,graphicx}
+\usepackage{amsmath,amsfonts}
+\usepackage{MinionPro}
+\usepackage{fancyvrb}
+\def\prg#1{{\tt #1}}
+\def\pbp{Proof by Picture }
+\def\Python{python}
+\def\cmd#1{{\tt #1}}
+
+\usepackage{listings}
+\lstnewenvironment{snippet}{\lstset{language=Python,xleftmargin=12pt,xrightmargin=12pt,basicstyle=\small\ttfamily,escapechar=|}}{}
+
+\begin{document}
+\section{Introduction}
+\pbp{} is a package for making diagrams, particularly
+mathematical diagrams.  The package is built on top of the
+\Python{} programming language; a picture is described via
+a sequence of python commands.  The world's smallest
+\pbp program is the following.
+\begin{snippet}
+from pbpic import *
+pbpbegin(2*inch,2*inch,'pdf')
+pbpend()
+\end{snippet}
+It would be worthwhile at this stage to actually run this code.
+Save it to a file, e.g. \verb|tiny.py| and then run the file
+as a python script (e.g. execute \verb|python tiny.py| at the command line).
+The result should be a file \verb|tiny.pdf| that contains an empty 2 inch
+by 2 inch figure.
+
+There are two basic commands for making marks on the page:
+\cmd{stroke} and \cmd{fill}.  Before these commands are issued,
+a path must be constructed that contains the outline of the
+region to be drawn.  For example:
+\begin{snippet}
+pbpbegin(1*inch,1*inch,'pdf')
+scaleto(1*inch);
+moveto(0,0); lineto(1,1);
+moveto(0,1); lineto(1,0);
+stroke()
+pbpend()
+\end{snippet}
+\hfil\begin{pbpic}<1*inch,1*inch>
+scaleto(1*inch);
+moveto(0,0); lineto(1,1);
+moveto(0,1); lineto(1,0);
+stroke()  
+\end{pbpic}
+
+The 
+
+% \vskip 12pt
+% 
+% \def\eg0{path() + (0,0)-(40,40);stroke()}
+% \pbpicexec<2*inch,2*inch>{\eg0}
+% 
+% \begin{snippet}
+% from pbpic import *
+% |\eg0|
+% pbpend()
+% \end{snippet}
+% 
+% \hfil
+% \begin{pbpic}<2*inch,2*inch>
+% scaleto(1*inch)
+% translate(loc.center)
+% moveto(-0.5,-0.5); rlineto(1,1)
+% moveto(-0.5,0.5); rlineto(1,-1)
+% stroke()
+% \end{pbpic}
+
+% 
+% \begin{python}
+% from pbpic import *
+% pbpbegin(2*inch,2*inch,'tiny.pdf')
+% pbpend()
+% \end{python}
+% \includegraphics{tiny}
+
+
+\section{Coordinate Systems}
+
+A \pbp diagram is described using geometric objects, such
+as points and vectors, that are tracked
+internally in a system of coordinates on $\mathbb{R}^2$ known 
+as {\bf page coordinates}.  On the other hand, 
+a \pbp program need not describe the position of these
+objects using page coordinates; instead, it indicates
+the locations of these objects using {\bf user coordinates},
+which are always related to page coordinates via an affine
+transformation $T$.  Thus, the command \prg{moveto(3,2)}
+moves the current point to the point $(a,b)$ in page
+coordinates, where
+$$
+(a,b) = T(3,2).
+$$
+
+
+Lengths are ovals.  They are used to convert a vector in page
+coordinates into a rescaled vector with the length given in the Length's
+coordinate system
+
+\end{document}
