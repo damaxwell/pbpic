@@ -438,7 +438,7 @@ class Canvas:
     elif len(args) == 2:
       x=args[0]; y=args[1]
       if isinstance(x,Length) or isinstance(y,Length):
-        if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list):
+        if isinstance(y,str) or isinstance(y,PageVector) or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list) or isinstance(y,Point) or isinstance(y,PagePoint):
           v = self.vector(y)
           pagev = self.gstate.ctm.Tv(v)
           pagev /= x.measure(pagev)
@@ -512,7 +512,7 @@ class Canvas:
       x = args[0]; y=args[1]
       if isinstance(x,Length) or isinstance(y,Length):
         if isinstance(x,Length):
-          if isinstance(y,str) or isinstance(y,PageVector)  or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list):
+          if isinstance(y,str) or isinstance(y,PageVector)  or isinstance(y,Vector) or isinstance(y,tuple) or isinstance(y,list) or isinstance(y,Point) or isinstance(y,PagePoint):
             v = self.vector(y)
             pagev = self.gstate.ctm.Tv(v)
             v /= x.measure(pagev)
@@ -570,12 +570,13 @@ class Canvas:
         self.moveto(at)
         kwargs.pop('at')
 
-      if hasattr(builder,'buildpath'):
-        builder.buildpath(self,*args,**kwargs)
-      elif callable(builder):
-        builder(self,*args,**kwargs)
-      else:
-        raise ValueError("Unable to build a path from %s" % builder)
+      with self.ctmsave():
+        if hasattr(builder,'buildpath'):
+          builder.buildpath(self,*args,**kwargs)
+        elif callable(builder):
+          builder(self,*args,**kwargs)
+        else:
+          raise ValueError("Unable to build a path from %s" % builder)
     finally:
       self.building = wasBuilding
 

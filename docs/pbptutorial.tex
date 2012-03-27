@@ -22,39 +22,9 @@ Proof by Picture by walking through a number of
 increasingly sophisticated diagrams.  Before beginning
 the tutorial you will want to have installed Proof by Picture according to
 the installation guide, and verified that you can run Python to
-create a diagrams with it. For example, save the following to the file \file{exbox.py}.
+create a diagrams with it.
 
-\begin{snippet}
-from pbpic import *
-
-pbpbegin(1*inch,1*inch,'pdf')
-
-scaleto(1*inch)
-
-build(extents()); stroke()
-
-moveto(0,0); lineto(1,1)
-moveto(0,1); lineto(1,0)
-stroke()
-
-pbpend()
-\end{snippet}
-
-Then from the command line issue the command \file{python exbox.py}.
-If all has gone well the result will be the file \file{exbox.pdf}
-which will contain 1 inch square figure with a box and an ex.
-
-\par\vskip12pt  \hfil\begin{pbpic}<1*inch,1*inch>
-scaleto(1*inch)
-
-build(extents()); stroke()
-
-moveto(0,0); lineto(1,1)
-moveto(0,1); lineto(1,0)
-stroke()  
-\end{pbpic}
-
-\section{Euclid Book I Proposition 1}
+\section{Book I Proposition 1}
 The first proposition of Euclid's Elements states that 
 given a line segment $AB$, one can
 construct an equilateral triangle such that
@@ -109,7 +79,7 @@ that writes the final diagram to the output file.
 
 The default coordinate system for a diagram has its origin
 in the lower-left corner and has its unit size selected
-so that one unit is 1  point (i.e. $1/72$ of an inch).
+so that one unit is 1 point (i.e. $1/72$ of an inch).
 Moving
 in the positive $x$-direction corresponds to moving right, while moving
 in the positive $y$-direction corresponds to moving up.  We set up
@@ -227,7 +197,8 @@ draw(arrowto,(0,1))
 
 In the new coordinate system, $C$ lies at the point $(R,0)$.  We
 save the location of this point using the command \code{C=pagePoint(R,0)}.
-Now \code{C} contains a \code{PagePoint} object that represents a point 
+The variable \code{C} then 
+contains a \code{PagePoint} object that represents a point 
 on the page without reference to any particular coordinate system.
 
 The next step is to draw the two circles.  Marks on the page
@@ -303,7 +274,7 @@ stroke()
 This code block moves the current point to $A$ with  \code{moveto}, 
 and draws a straight lines to $B$ and $C$ with \code{lineto} commands.
 The \code{closepath} command draws a straight back to $A$ and indicates 
-that a loop has been created in the current path.  A more compact
+that a closed loop has been created in the current path.  A more compact
 and legible alternative is to build a polygon.
 \begin{snippet}
 build(paths.polygon,[A,B,C])
@@ -527,7 +498,608 @@ drawtex("$B$",origin=loc.west)
 pbpend()
 \end{snippet}
 
+\section{Pythagorean Theorem}
 
+Book I Proposition 47 of Euclid's Elements proves the Pythagorean Theorem,
+namely that the square of the hypotenuse of a right angle 
+triangle equals the sum of the square of the other two sides.
+The strategy of the proof is to show that the blue areas
+and green areas in the figure below are the same
 
+\hfil\begin{pbpic}<7*cm,7*cm>
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+scaleto(.5*cm); translate(loc.center)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+
+# Draw altitude of triangle
+moveto(B); lineto(D);
+stroke(color.GrayColor(.3))
+
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  setlinejoin('bevel')
+  stroke()
+
+vertex = [A,B,C,D]
+xlength = [a,b,(D-C).length(),(A-D).length()]
+ylength = [a,b,c,c]
+c = [lightgreen, lightblue, lightblue, lightgreen]
+
+for i in range(4):
+  P0=vertex[i]; P1=vertex[(i+1)%4]
+  with ctmsave():
+    translate(P0)
+    rotate((P1-P0).angle())
+    moveto(0,0);
+    build(paths.rect,xlength[i],-ylength[i])
+  with gsave():
+    fill(c[i])
+  stroke()
+
+label = ['$A$', '$B$', '$C$' ]
+(B-A).unitvector()+(C-A).unitvector()
+vertex = [A,B,C]
+for i in range(3):
+  P=vertex[i]; Q=vertex[(i-1)%3]; R=vertex[(i+1)%3]
+  moveto(P);
+  S= -( (Q-P).unitvector() + (R-P).unitvector() )
+  rmoveto(6*pt,S)
+  drawtex(label[i],origin=loc.border(-S))
+
+\end{pbpic}
+
+We start this diagram starts by setting up a coordinate system: we'll
+make a 7cm by 7cm figure, and choose an initial unit size of 1/2cm.
+
+\begin{snippet}
+from pbpic import *
+
+pbpbegin(7*cm,7*cm,'pdf')
+scaleto(.5*cm); translate(loc.center)
+
+# Drawing commands go here.
+
+pbpend()
+\end{snippet}
+
+The triangle itself is parameterized in terms of its two (non-hypotenuse)
+side lengths $a=3$, $b=4$.  Every other point will be computed based
+on these values; this way, we can adjust the diagram simply by 
+changing $a$ and $b$.
+\begin{snippet}
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+\end{snippet}
+
+Rather than code the vertex locations directly (which would have been
+a perfectly reasonable approach), we construct the the triangle vertices
+via relative move-to operations, and grab the 
+coordinates of each vertex as it is constructed.  The \code{currentpoint} command returns the coordinates of the path's current point in the current coordinate system.  
+At the end of this computation, we call \code{newpath} to erase the
+path and clean up our scratch work.
+
+Having located $A$, $B$, and $C$, we also need the point $D$, which 
+is the projection of $B$ onto the line $CA$.  If $V$ is a unit vector
+perpendicular to $CA$, then
+$$
+D = B-[ (B-C)\cdot V] V.
+$$
+
+\hfil\begin{pbpic}<5*cm,5*cm>
+arrowto=arrow.ArrowTo();
+
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+scaleto(.5*cm); translate(loc.center)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  stroke()
+
+V = (A-C).unitvector().perp()
+tip = D+V
+moveto(D); draw(arrowto,tip)
+
+moveto(tip)
+rmoveto(2*pt,2*pt)
+drawtex('$V$',origin=loc.sw)
+
+label = ['$A$', '$B$', '$C$' ]
+(B-A).unitvector()+(C-A).unitvector()
+vertex = [A,B,C]
+for i in range(3):
+  P=vertex[i]; Q=vertex[(i-1)%3]; R=vertex[(i+1)%3]
+  moveto(P);
+  S= -( (Q-P).unitvector() + (R-P).unitvector() )
+  rmoveto(6*pt,S)
+  drawtex(label[i],origin=loc.border(-S))
+
+moveto(D)
+with ctmsave():
+  scaleto(2*pt)
+  build(paths.circle,r=1)
+  fill()
+
+moveto(D)
+rmoveto(6*pt,-V)
+drawtex('$D$',origin=loc.border(V))
+
+\end{pbpic}
+
+The computation in Python of the point $D$ is done as follows.
+\begin{snippet}
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+\end{snippet}
+With all the important points computed, we now draw the diagram
+in the following order:
+\begin{enumerate}
+  \item The gray altitude.
+  \item The triangle.
+  \item The four colored rectangles.
+  \item The vertex labels.
+\end{enumerate}
+
+When we stroke the altitude, we can specify the color of the
+line.
+\begin{snippet}
+# Draw altitude of triangle
+moveto(B); lineto(D);
+stroke(color.GrayColor(.3))
+\end{snippet}
+The \code{color.GrayColor} is a class that represents a grayscale
+color in the range from 0 (white) to 1 (black), so a 
+\code{color.GrayColor(.3)} is a light shade of gray.
+
+The most straightforward way to draw the triangle is to 
+use a polygon.
+\begin{snippet}
+build(paths.polygon,[A,B,C])
+stroke()
+\end{snippet}
+
+However, the effect will have undesired side-effect.  Compare the two
+figures below that have zoomed in on the point $C$.  The one on the
+left shows that the triangle's tip has an unaesthetic extension.
+
+\hfil\begin{pbpic}<4*cm,4*cm>
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+with inset(4*cm,4*cm) as figure:
+  scaleto(.5*cm); translate(loc.center)
+  scale(2)
+  setlinewidth(2*pt)
+
+  # Determine the locations of the triangle vertices
+  moveto(-a/2,-b/2); A = currentpoint()
+  rmoveto(a,0); B = currentpoint()
+  rmoveto(0,b); C = currentpoint()
+  newpath()
+
+  markpoint('C',C)
+
+  # Compute the projection of 'B' onto the line CA
+  V = (A-C).unitvector().perp()
+  D = B - (B-C).dot(V)*V
+
+  # Draw altitude of triangle
+  moveto(B); lineto(D);
+  stroke(color.GrayColor(.3))
+
+  # Draw triangle
+  with gsave():
+    build(paths.polygon,[A,B,C])
+    stroke()
+
+  vertex = [A,B,C,D]
+  xlength = [a,b,(D-C).length(),(A-D).length()]
+  ylength = [a,b,c,c]
+  c = [lightgreen, lightblue, lightblue, lightgreen]
+
+  for i in range(4):
+    P0=vertex[i]; P1=vertex[(i+1)%4]
+    with ctmsave():
+      translate(P0)
+      rotate((P1-P0).angle())
+      moveto(0,0);
+      build(paths.rect,xlength[i],-ylength[i])
+    with gsave():
+      fill(c[i])
+    stroke()
+
+moveto(loc.center)
+draw(figure,origin='C')
+
+\end{pbpic}
+\hfil\begin{pbpic}<4*cm,4*cm>
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+with inset(4*cm,4*cm) as figure:
+  scaleto(.5*cm); translate(loc.center)
+  scale(2)
+  setlinewidth(2*pt)
+
+  # Determine the locations of the triangle vertices
+  moveto(-a/2,-b/2); A = currentpoint()
+  rmoveto(a,0); B = currentpoint()
+  rmoveto(0,b); C = currentpoint()
+  newpath()
+
+  markpoint('C',C)
+
+  # Compute the projection of 'B' onto the line CA
+  V = (A-C).unitvector().perp()
+  D = B - (B-C).dot(V)*V
+
+  # Draw altitude of triangle
+  moveto(B); lineto(D);
+  stroke(color.GrayColor(.3))
+
+  # Draw triangle
+  with gsave():
+    build(paths.polygon,[A,B,C])
+    setlinejoin('bevel')
+    stroke()
+
+  vertex = [A,B,C,D]
+  xlength = [a,b,(D-C).length(),(A-D).length()]
+  ylength = [a,b,c,c]
+  c = [lightgreen, lightblue, lightblue, lightgreen]
+
+  for i in range(4):
+    P0=vertex[i]; P1=vertex[(i+1)%4]
+    with ctmsave():
+      translate(P0)
+      rotate((P1-P0).angle())
+      moveto(0,0);
+      build(paths.rect,xlength[i],-ylength[i])
+    with gsave():
+      fill(c[i])
+    stroke()
+
+moveto(loc.center)
+draw(figure,origin='C')
+
+\end{pbpic}
+
+To correct this, we draw the triangle using:
+\begin{snippet}
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  setlinejoin('bevel')
+  stroke()
+\end{snippet}
+The \code{setlinejoin} command determines how corners are treated 
+when they are stroked.  There are three settings: \code{'miter'},
+\code{'bevel'}, and \code{'round'} which look as follows.
+
+\hfil\begin{pbpic}<9*cm,4*cm>
+scaleto(1*cm);translate(1.5,2)
+j=['miter','bevel','round']
+
+setlinewidth(8*pt)
+
+for i in range(3):
+  moveto(.5,-.75)
+  rlineto(0,1.5)
+  rlineto(-1,-1.5)
+  setlinejoin(j[i])
+  stroke()
+  moveto(0,-1.5)
+  rmoveto(0,-4*pt)
+  drawtex(j[i],origin=loc.north)
+  
+  translate(3,0)
+\end{pbpic}
+
+The line join style is one of a number of parameters that comprise
+the graphics state, which is maintained throughout drawing the diagram.
+Because we only want to affect the line join style for the triangle, and
+not for the rest of the figure, we use the \code{with gsave():} command.
+On exiting the \code{gsave} code block, the graphics state will be reset to 
+whatever it was when we entered it.  So by wrapping our triangle drawing
+with a \code{gsave}, we ensure that we only temporarily change the
+line join style.  
+
+At this stage, our diagram looks as follows.
+
+\hfil\begin{pbpic}<7*cm,7*cm>
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+scaleto(.5*cm); translate(loc.center)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+
+# Draw altitude of triangle
+moveto(B); lineto(D);
+stroke(color.GrayColor(.3))
+
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  setlinejoin('bevel')
+  stroke()
+\end{pbpic}
+
+We now draw the rectangles on the triangle sides.  The following
+sample code shows how to draw a single rectangle, filled with
+the color red, and stroked around the outside.
+\begin{snippet}
+dx=2; dy=1.5
+moveto(-dx/2,-dy/2)
+build(paths.rect,dx,dy)
+with gsave():
+  fill(color.red)
+stroke()
+\end{snippet}
+\hfil\begin{pbpic}<4*cm,4*cm>
+scaleto(1*cm); translate(loc.center)
+dx=2; dy=1.5
+moveto(-dx/2,-dy/2)
+build(paths.rect,dx,dy)
+with gsave():
+  fill(color.red)
+stroke()
+moveto(0,-dy/2)
+rmoveto(0,-4*pt)
+drawtex('$dx$',origin=loc.north)
+
+moveto(-dx/2,0)
+rmoveto(-4*pt,0)
+drawtex('$dy$',origin=loc.east)
+
+moveto(-dx/2,-dy/2)
+rmoveto(-4*pt,-4*pt)
+drawtex('$O$',origin=loc.ne)
+\end{pbpic}
+
+Note the use of \code{gsave} here as well.  The current path
+is part of the graphics state.  Issuing a \code{fill} or \code{stroke}
+command clears the current path.  Since we want to both fill and stroke
+the rectangle, we save the graphics state, fill the path, restore
+the graphics state (which restores the path) and finally stroke it.
+This combination of commands is sufficiently common that there is a shortcut:
+\begin{snippet}
+fillstroke(fillcolor=color.red)
+\end{snippet} 
+does the same thing as
+\begin{snippet}
+with gsave():
+  fill(color.red)
+stroke()
+\end{snippet}
+
+To draw all four rectangles, we set up the parameters for
+each of them in advance, and then use a loop.  For each rectangle,
+we need to know its lower left corner, and its two side lengths.
+These are the variables \code{vertex}, \code{xlength}, and \code{ylength}
+in the code.
+\begin{snippet}
+vertex = [A,B,C,D]
+xlength = [a,b,(D-C).length(),(A-D).length()]
+ylength = [a,b,c,c]
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+c = [lightgreen, lightblue, lightblue, lightgreen]
+\end{snippet}
+The variable \code{c} contains the rectangle colors, which are
+specified using \code{color.RGBColor} objects that specify the
+red, green, and blue components of a color, each in the range from 0 to 1.
+For example, \code{color.red} is equivalent to \code{color.RGBColor(1,0,0)}.
+
+To draw each rectangle, we translate the coordinate system
+to its origin, then rotate the coordinates to align the rectangle base with the triangle side.  In the code, the variables $P0$ and $P1$ contain 
+the two vertices
+of the rectangle on the triangle side, and \code{(P1-P0).angle()} computes 
+the angle between the vector vector \code{P1-P0} and the $x$-axis.  This
+is the correct angle to rotate by.  All these coordinate transformations
+are wrapped with a \code{with ctmsave():} so that they are easily undone.
+\begin{snippet}
+for i in range(4):
+  P0=vertex[i]; P1=vertex[(i+1)%4]
+  with ctmsave():
+    translate(P0)
+    rotate((P1-P0).angle())
+    moveto(0,0);
+    build(paths.rect,xlength[i],-ylength[i])
+  fillstroke(fillcolor=c[i])
+\end{snippet}
+
+\hfil\begin{pbpic}<7*cm,7*cm>
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+scaleto(.5*cm); translate(loc.center)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+
+# Draw altitude of triangle
+moveto(B); lineto(D);
+stroke(color.GrayColor(.3))
+
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  setlinejoin('bevel')
+  stroke()
+
+vertex = [A,B,C,D]
+xlength = [a,b,(D-C).length(),(A-D).length()]
+ylength = [a,b,c,c]
+c = [lightgreen, lightblue, lightblue, lightgreen]
+
+for i in range(4):
+  P0=vertex[i]; P1=vertex[(i+1)%4]
+  with ctmsave():
+    translate(P0)
+    rotate((P1-P0).angle())
+    moveto(0,0);
+    build(paths.rect,xlength[i],-ylength[i])
+  fillstroke(fillcolor=c[i])
+\end{pbpic}
+
+To add the vertex labels, we again use a loop.  The
+hard part is positioning the labels automatically.
+For each vertex, we compute the vector \code{S} that
+points outside the triangle along the line that bisects
+the angle at that vertex.  The command \code{rmoveto(6*pt,S)}
+moves the current point 6pt in the direction of the vector $S$,
+and the command \code{drawtex(label[i],origin=loc.border(-S))}
+positions the label so THIS NEEDS A PICTURE.
+\begin{snippet}
+label = ['$A$', '$B$', '$C$' ]
+vertex = [A,B,C]
+for i in range(3):
+  P=vertex[i]; Q=vertex[(i-1)%3]; R=vertex[(i+1)%3]
+  moveto(P);
+  S= -( (Q-P).unitvector() + (R-P).unitvector() )
+  rmoveto(6*pt,S)
+  drawtex(label[i],origin=loc.border(-S))
+\end{snippet}
+
+The total code for the figure follows.
+\begin{snippet}
+from pbpic import *
+import math
+
+a=3; b=4; c=math.sqrt(a*a+b*b)
+
+lightblue = color.RGBColor(0,.5,.9)
+lightgreen = color.RGBColor(.1,.9,.5)
+
+pbpbegin(7*cm,7*cm,'pdf')
+scaleto(.5*cm); translate(loc.center)
+
+# Determine the locations of the triangle vertices
+moveto(-a/2,-b/2); A = currentpoint()
+rmoveto(a,0); B = currentpoint()
+rmoveto(0,b); C = currentpoint()
+newpath()
+
+# Compute the projection of 'B' onto the line CA
+V = (A-C).unitvector().perp()
+D = B - (B-C).dot(V)*V
+
+# Draw altitude of triangle
+moveto(B); lineto(D);
+stroke(color.GrayColor(.3))
+
+# Draw triangle
+with gsave():
+  build(paths.polygon,[A,B,C])
+  setlinejoin('bevel')
+  stroke()
+
+# Draw rectangles
+vertex = [A,B,C,D]
+xlength = [a,b,(D-C).length(),(A-D).length()]
+ylength = [a,b,c,c]
+c = [lightgreen, lightblue, lightblue, lightgreen]
+
+for i in range(4):
+  P0=vertex[i]; P1=vertex[(i+1)%4]
+  with ctmsave():
+    translate(P0)
+    rotate((P1-P0).angle())
+    moveto(0,0);
+    build(paths.rect,xlength[i],-ylength[i])
+  with gsave():
+    fill(c[i])
+  stroke()
+
+# Draw labels
+label = ['$A$', '$B$', '$C$' ]
+(B-A).unitvector()+(C-A).unitvector()
+vertex = [A,B,C]
+for i in range(3):
+  P=vertex[i]; Q=vertex[(i-1)%3]; R=vertex[(i+1)%3]
+  moveto(P);
+  S= -( (Q-P).unitvector() + (R-P).unitvector() )
+  rmoveto(6*pt,S)
+  drawtex(label[i],origin=loc.border(-S))
+pbpend()
+\end{snippet}
 
 \end{document}

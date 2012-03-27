@@ -13,10 +13,53 @@
 \def\@pathsep{/}
 \fi
 
+
+\def\pyexec{%
+\newlinechar='15
+\begingroup \catcode`\^^M=12 %
+\let\do\@makeother\dospecials\obeyspaces%
+\@pyexec}
+
+\begingroup \catcode `|=0 \catcode `[=1
+\catcode`]=2 \catcode `\{=12 \catcode `\}=12
+\catcode`\\=12 |gdef|@pyexec#1\end{pyexec}[|@pyexeccore[#1]|end[pyexec]]
+|endgroup
+
+\def\@pyexeccore#1{%
+\immediate\write18{echo "#1" | python}}
+
+\def\endpyexec{\endgroup}
+
 \begingroup \catcode `|=0 \catcode `[=1
 \catcode`]=2 \catcode `\{=12 \catcode `\}=12
 \catcode`\\=12 |gdef|@xpython#1\end{pbpic}[|immediate|write|@out[#1]|immediate|write|@out[pbpend()]|end[pbpic]]
 |endgroup
+
+\begingroup
+\catcode`\^^M=12\obeyspaces%
+\gdef\@pymkdir{python -c "import os; 
+try:
+  os.mkdir('pbpic-figures')
+except:
+  pass"}%
+\endgroup
+
+\begingroup
+\catcode`\^^M=12\obeyspaces%
+\gdef\@pypreclean{python -c "import glob,os;
+for f in glob.glob('\@pbpicfilename.[pdf,py.err,py.out]'):
+  os.remove(f)"}%
+\endgroup
+
+\newif\ifpbpicinitialized
+\def\pbpinit{%
+\ifpbpicinitialized\else
+\ifnum\pdf@shellescape=1\relax\else
+\PackageError{pbpic}{^^J Shell escape must be enabled with -shell-escape}\fi%
+\catcode`\^^M=12
+\let\do\@makeother\dospecials\obeyspaces%
+\immediate\write18{\@pymkdir}%
+\fi}%
 
 \newcounter{@pbpicfigcount}
 
@@ -24,6 +67,7 @@
 \@pbpic[\jobname-pbpic\arabic{@pbpicfigcount}]}}
 
 \def\@pbpic[#1]<#2,#3>{%
+\pbpinit
 \gdef\@pbpicfilename{pbpic-figures\@pathsep#1}
 \immediate\openout\@out=\@pbpicfilename.py
 \immediate\write\@out{from pbpic import *;pbpbegin(#2,#3,'\@pbpicfilename .pdf')}
@@ -35,12 +79,10 @@
 \def\endpbpic{%
 \endgroup
 \immediate\closeout\@out
+
 \immediate\openout\@out=pbpic-figures\@pathsep pbpexec.py
-\immediate\write\@out{import glob,os;}
-\immediate\write\@out{for f in glob.glob("\@pbpicfilename.[pdf,py.err,py.out]"):}
-\immediate\write\@out{\space os.remove(f)}% 
-\immediate\closeout\@out
-\immediate\write18{python \space \@pbpicfilename.py  > \@pbpicfilename.py.out 2> \@pbpicfilename.py.err}%
+\immediate\write18{\@pypreclean}%
+\immediate\write18{python  \space \@pbpicfilename.py  > \@pbpicfilename.py.out 2> \@pbpicfilename.py.err}%
 \immediate\openin\@errin=\@pbpicfilename.py.err\relax
 \immediate\read\@errin to \@pbpicpyerr
 \ifeof\@errin\else\def\@emptyfile{\par}
