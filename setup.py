@@ -12,14 +12,14 @@ import ConfigParser
 pscodec_module = Extension('pbpic/pscodec',
                     define_macros = [('MAJOR_VERSION', '1'),
                                      ('MINOR_VERSION', '0')],
-                    sources = ['pbpic/pscodec.c'])
+                    sources = ['pbpic/font/PSCodec.c'])
 
 
 sysfont_mac_module = Extension('pbpic/_sysfont_mac',
                     define_macros = [('MAJOR_VERSION', '1'),
                                      ('MINOR_VERSION', '0')],
                     extra_link_args = ['-framework', 'ApplicationServices','-framework', 'CoreFoundation'],
-                    sources = ['pbpic/sysfont_mac.c'])
+                    sources = ['pbpic/font/sysfont_mac.c'])
 
 ExtensionModules = []
 
