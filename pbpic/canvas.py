@@ -72,14 +72,14 @@ class Canvas:
     if isinstance(w,Units):
       units = w
     else:
-      # It shoudl be a length
+      # It should be a length
       units = w.units()
   
     pageUnits = self.gstate.unitsize.copy()
     pageUnits.concat(units)
 
     tm = pageUnits.affineTransform(page_v=page_dx,local_v=preserve,origin=origin,orientation=o)
-    
+
     if isinstance(w,Length):
       tm.dilate(w.length())
     self.gstate.ctm = tm

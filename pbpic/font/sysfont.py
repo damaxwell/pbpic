@@ -60,14 +60,14 @@ def findfont(name):
     (fontPath,psName,index,fontType) = sysfont_platform.find_font(name)
 
   if fontPath is None:
-    raise exception.FontNotFound(name)
+    raise pbpic.exception.FontNotFound(name)
 
   if fontType is None:
     fontType = sysfont_platform.font_type(fontPath)
     if fontType is None:
       fontType = fontTypeFromExtension(fontPath)
     if fontType is None:
-      raise exception.FontUnrecognized(fontPath)
+      raise pbpic.exception.FontUnrecognized(fontPath)
 
   if fontType == 'TTC' and index<0:
     if not psName is None:

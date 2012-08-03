@@ -1,34 +1,15 @@
 \NeedsTeXFormat{LaTeX2e}[1994/12/01]
 \ProvidesPackage{pbpic}[2007/06/07 v0.21 Python in LaTeX]
 \RequirePackage{graphicx}
-\RequirePackage{ifplatform}
+\RequirePackage{pdftexcmds}
 \newwrite\@out
-\newwrite\@outtwo
 \newread\@errin
 
-
-\ifwindows
-\def\@pathsep\@backslashchar
-\else
-\def\@pathsep{/}
-\fi
-
-
-\def\pyexec{%
-\newlinechar='15
-\begingroup \catcode`\^^M=12 %
-\let\do\@makeother\dospecials\obeyspaces%
-\@pyexec}
-
-\begingroup \catcode `|=0 \catcode `[=1
-\catcode`]=2 \catcode `\{=12 \catcode `\}=12
-\catcode`\\=12 |gdef|@pyexec#1\end{pyexec}[|@pyexeccore[#1]|end[pyexec]]
-|endgroup
-
-\def\@pyexeccore#1{%
-\immediate\write18{echo "#1" | python}}
-
-\def\endpyexec{\endgroup}
+% Figure out if this is Windows or not.  The following test comes from
+% 'ifplatform'
+\newif\if@windows
+\IfFileExists{/dev/null}{\@windowsfalse}{\@windowstrue}
+\if@windows\def\@pathsep\backslashchar\else\def\@pathsep{/}\fi
 
 \begingroup \catcode `|=0 \catcode `[=1
 \catcode`]=2 \catcode `\{=12 \catcode `\}=12
@@ -79,7 +60,6 @@ for f in glob.glob('\@pbpicfilename.[pdf,py.err,py.out]'):
 \def\endpbpic{%
 \endgroup
 \immediate\closeout\@out
-
 \immediate\openout\@out=pbpic-figures\@pathsep pbpexec.py
 \immediate\write18{\@pypreclean}%
 \immediate\write18{python  \space \@pbpicfilename.py  > \@pbpicfilename.py.out 2> \@pbpicfilename.py.err}%
@@ -93,24 +73,3 @@ for f in glob.glob('\@pbpicfilename.[pdf,py.err,py.out]'):
 \immediate\closein\@errin
 \includegraphics{\@pbpicfilename}%
 }
-
-% BUGS:
-% 1. If anything gets send to stderr then it should be included
-% in \begin{verbatim}...\end{verbatim} to be properly displayed
-%
-% \immediate\write18{cat \@pythoninclude\space\jobname.py | python > \jobname.py.out 2>\jobname.py.err}
-%
-% 2. Watch out for indentation done by aucTeX in Emacs
-%
-% 3. Let the package accept a "final version" option, such
-% that the output of each python run is saved such that it can be
-% inserted into the document by hand 
-% (conference, journals are not likely to compile with
-% shell_escape or have python).
-%
-% \gdef\@prepython{}
-% \def\prepython#1{%
-% \gdef\@prepython{#1}
-% }
-% sed -e 's/^  //g' cluster.py
-% \immediate\write18{\@prepython\space\jobname.py > \
