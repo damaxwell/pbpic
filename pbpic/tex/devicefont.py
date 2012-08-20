@@ -86,6 +86,59 @@ class DviPdfMapFile:
 
     return MapFileEntry( texFontName, encoding, pfbFontName, odict )
 
+class PdfTexMapFile:
+
+  # When initially reading the font map, we just parse enough to determine which fonts are listed
+  # the string that is the entry associated with each font.  When asked for a given font entry, we 
+  # parse the entry and return a FontMapEntry
+
+  def __init__( self, mapFilePath ):
+    self.mapFilePath = mapFilePath
+    self.mapDict = {}
+
+    with open(mapFilePath, "r" ) as f:
+      contents = f.read()
+
+    # Matches: #1:filename #2:other stuff.  We decode the other stuff later if need be.
+    line_re=re.compile("^(\w[\w-]+)(?:[ \t]+(.+))?",re.M)
+    lineIter = line_re.finditer(contents)
+    for line in lineIter:
+      g=line.groups()
+      entry = g[1]
+      if entry == None:
+        entry = ""
+      self.mapDict[g[0]] = entry
+
+  def __getitem__(self,texFontName):
+    return self.getEntry(texFontName)
+
+  def getEntry( self, texFontName ):
+    mapEntry = self.mapDict.get( texFontName, None )
+    if mapEntry == None:
+      logging.warning("Missing font map entry for %s in mapfile %s", texFontName, self.mapFilePath )
+      return MapFileEntry( texFontName, None, texFontName, None );
+
+    entry_re = re.compile('(\w[\w-]+)[ \t]+(?:" (.*) "[ \t]+)?(?:\<\[?(.*)\.enc[ \t]+)?(?:\<(.*)\.pfb)')
+    entry = entry_re.match( mapEntry )
+    g = entry.groups();
+    if g is None:
+      raise Exception("Failure to parse pdftex map file.")
+    encoding = g[2];
+
+    pfbFontName = g[3];
+    if( pfbFontName == None ):
+      pfbFontName = texFontName
+
+    odict = {}
+    # FIXME: Options for slant and expansion
+    # if g[2] != None:
+    #   opt_re=re.compile("-([esr])(?:[ \t]+([-+]?(?:\d+(?:\.\d*)?|\.\d+)))?")
+    #   olist = opt_re.findall(g[2])
+    #   for opt in olist:
+    #     odict[opt[0]] = opt[1]
+
+    return MapFileEntry( texFontName, encoding, pfbFontName, odict )
+
 def encodingVectorFromFile( filePath ):
   with open( filePath, "r" ) as f:
     contents = f.read()
@@ -107,7 +160,7 @@ Base13Fonts = dict( (k,k) for k in Base13Names )
 
 class FontTable:
   def __init__( self ):
-    self.mapFile = resource.findMapFile( "dvipdfm" )
+    self.mapFile = resource.findMapFile( "pdftex" )
     self.fontdict = {}
 
   def findFont( self, texFontName ):

@@ -107,7 +107,7 @@ def findMapFile(m):
   mf = mapFileDict.get(m,None)
   if mf is None:
     p = findMapFilePath( m )
-    mf = devicefont.DviPdfMapFile( p )
+    mf = devicefont.PdfTexMapFile( p )
     mapFileDict[m] = mf
   return mf
 

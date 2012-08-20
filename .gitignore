@@ -1,4 +1,9 @@
 *.aux
 *.log
 .pbpdata
+*.pyc
+dist
+build
+*.so
 
+pbpic.egg-info
