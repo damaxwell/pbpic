@@ -155,15 +155,15 @@ class DviToInset(tex.dvi.DviReader):
 
   def putrule(self, a, b):
     x = self.toPSScale*self.h
-    y = -self.toPSScale*self.v
-    w = self.toPSScale*a
-    h = self.toPSScale*b
+    y = self.toPSScale*self.v
+    h = self.toPSScale*a
+    w = self.toPSScale*b
     self.bbox.include(x,-y)
     # FIXME: -y+h?  -y-h?
     self.bbox.include(x+w,-y+h)    
     self.canvas.path() + (x,-y) - (x+w,-y) - (x+w,-y+h) - (x,-y+h) - 0
-    self.canvas.stroke() #FIXME
-    # self.canvas.fill()
+    # self.canvas.stroke() 
+    self.canvas.fill()
 
   def bop(self):
     self.canvas = inset.Inset()

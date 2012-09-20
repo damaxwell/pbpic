@@ -274,7 +274,7 @@ class PutRule(SetRule):
   def __str__(self):
     return 'put rule %d %d' %(self.a,self.b)
   def execute(self,r):
-    r.putrule(r.scale*a,r.scale*b)
+    r.putrule(r.scale*self.a,r.scale*self.b)
     r.setStateFromInput()
 
 class NoOp(DviCmd):

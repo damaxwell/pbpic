@@ -5,5 +5,7 @@
 dist
 build
 *.so
-
+*.synctex.gz
+*.pdf
+docs/pbpic-figures
 pbpic.egg-info
