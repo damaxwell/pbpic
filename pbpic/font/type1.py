@@ -40,6 +40,7 @@ class Type1Font:
       self.start_public = 6
     else:
       self.start_public = 0
+      self.end_private = self.find_eexec_end()
 
     eexec_re = re.compile(".*currentfile[ ]+eexec[ \n\r\t]",re.DOTALL)    
     m = eexec_re.match(self.data) 
@@ -50,11 +51,22 @@ class Type1Font:
     if self.isPFB:
       self.start_private = self.segments[1][0]
       self.end_private = self.start_private + self.segments[1][1]
+      self.private = decrypt(self.data[self.start_private:self.end_private],eexec_R)
     else:
-      self.start_private = self.end_public + 1
-      raise NotImplementedError() # FIXME: Need to find end of eexec part
-        
-    self.private = decrypt(self.data[self.start_private:self.end_private],eexec_R)
+      self.start_private = self.end_public
+      self.stream.seek(self.start_private)
+      is_ascii = True
+      for k in range(4):
+        c = self.stream.read(1)
+        if not c.isdigit():
+          d = ord(c)
+          if d<ord('A') or ord('F')<d:
+            if d<ord('a') or ord('f')<d:
+              is_ascii = False
+              break
+      if is_ascii:
+        raise NotImplementedError() # Need to ascii hex decode
+      self.private = decrypt(self.data[self.start_private:self.end_private],eexec_R)
 
     self.public = self.data[self.start_public:self.end_public]
 
@@ -203,6 +215,26 @@ class Type1Font:
   def glyphIndices(self,glyphnames):
     return [ self.charstrings[g][0] for g in glyphnames ]
 
+  def find_eexec_end(self):
+    stream = self.stream
+    stream.seek(-1024,2)
+    tail = stream.read(1024)
+    p=1023
+    zcount = 0
+    while p>=0:
+      if tail[p]=='0':
+        zcount += 1
+      elif not tail[p].isspace():
+        zcount = 0
+      if zcount == 512:
+        break
+      p-= 1
+    if p<0 :
+      raise Type1Exception("Mangled font: unable to find trailing 0's.")
+    stream.seek(-1024,2)
+    stream.seek(p,1)
+    return stream.tell()
+    
   def stride_pfb(self):
     stream = self.stream
     while True:
