@@ -51,7 +51,7 @@ class ExampleTest:
         if output_image.shape != baseline_image.shape:
           raise ImageComparisonFailure("Image %s size does not match baseline %s:\n%s <=> %s" % \
                      (output_filename,baseline_filename,str(output_image.shape),str(baseline_image.shape)))
-        N=3.*output_image.shape[0*output_image.shape[1]]
+        N=output_image.shape[0]*output_image.shape[1]*output_image.shape[2]
         l1err = np.sum(np.abs(output_image-baseline_image))/N
     
         if l1err >= self.threshold:
@@ -66,7 +66,7 @@ class ExampleTest:
     return EgTest
     
 class PngTest:
-  def __init__(self,w=3,h=3,threshold=1.):
+  def __init__(self,w=3,h=3,threshold=1):
     self.w=w; self.h=h; self.threshold = threshold
   
   def __call__(self,func):
@@ -83,16 +83,27 @@ class PngTest:
         pbp.pbpend()
         pbp.style.clearstyles()
 
-      output_image = np.array(Image.open(output_filename),dtype='uint8')
-      baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')
+      output_image = np.array(Image.open(output_filename),dtype='int16')
+      baseline_image = np.array(Image.open(baseline_filename),dtype='int16')
+      diff_filename = os.path.join(func_dir,images_test_dir,func.__name__+"_diff.png")
       
-      N=3.*output_image.shape[0*output_image.shape[1]]
-      l1err = np.sum(np.abs(output_image-baseline_image))/N
+      N=output_image.shape[0]*output_image.shape[1]*output_image.shape[2]
+      l1err = np.sum(np.abs(output_image-baseline_image))/float(N)
       
       if l1err >= self.threshold:
-        raise ImageComparisonFailure("Image %s is not closed to %s\nL1 error %f" %(output_filename,baseline_filename,l1err) )
+        im_diff = Image.open(output_filename).copy()
+        data_diff = 255-np.abs(output_image-baseline_image)
+        shape = data_diff.shape
+        data_diff=data_diff.reshape((shape[0]*shape[1],shape[2]))
+        NM=data_diff.shape[0]
+        data_diff2 = [ tuple(v for v in data_diff[k,:]) for k in range(NM) ]
+        im_diff.putdata(data_diff2)
+        im_diff.save(diff_filename)
 
-      os.remove(output_filename)
+        raise ImageComparisonFailure("Image %s is not close to %s\nL1 error %g" %(output_filename,baseline_filename,l1err) )
+
+        os.remove(output_filename)
+        os.remove(diff_filename)
       
 
     PngTest.__name__ = func.__name__
