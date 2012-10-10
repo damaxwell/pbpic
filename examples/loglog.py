@@ -12,13 +12,13 @@ pbpbegin(W,H,'pdf')
 pagebox=extents()
 pagebox.addmargin(left=-45,bottom=-45,top=-10,right=-10)
 
-gbox=geometry.BBox([x0,y0,x1,y1])
+gbox=geometry.BBox((x0,y0),(x1,y1))
 window(pagebox,gbox)
 
-addpath(graph.boxaxis,gbox)
+build(graph.boxaxis,gbox)
 stroke()
 with gsave():
-  addpath(gbox)
+  build(gbox)
   clip()
 
   setlinewidth(0.5*pt)
@@ -30,7 +30,7 @@ with gsave():
       scale(1,yscale)
       for x in [0,1]:
         moveto(x,0)
-        addpath(graph.xlogticks,n=10,minor=0.5)
+        build(graph.xlogticks,n=10,minor=0.5)
       stroke()
 
   for x in [x0,x1]:
@@ -40,29 +40,29 @@ with gsave():
       scale(xscale,1)
       for y in [0,1]:
         moveto(0,y)
-        addpath(graph.ylogticks,n=10,minor=0.5)
+        build(graph.ylogticks,n=10,minor=0.5)
       stroke()
 
 for k in [0,1,2]:
   moveto(k,y0)
   rmoveto(0,-5*pt)
-  drawtex('$10^{%d}$' % k,'uc')
+  drawtex('$10^{%d}$' % k,origin=loc.uc)
 
 for k in [-3,-2,-1]:
   moveto(x0,k)
   rmoveto(-5*pt,0)
-  drawtex('$10^{%d}$' % k,'cr')
+  drawtex('$10^{%d}$' % k,origin=loc.cr)
   
 moveto((x0+x1)/2,y0)
 rmoveto(0,-15*pt)
 rmoveto(0,-4*pt)
-drawtex('iteration','uc')
+drawtex('iteration',origin=loc.uc)
 
 translate(x0,(y0+y1)/2)
 rotate(0.25)
 moveto(0,0)
 rmoveto(0,30*pt)
-drawtex('$L^2$ discrepancy','lc')
+drawtex('$L^2$ discrepancy',origin=loc.lc)
 
 
 pbpend()

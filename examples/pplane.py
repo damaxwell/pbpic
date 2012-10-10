@@ -5,7 +5,7 @@ from pbpic.paths import polygon
 
 w=10*cm; h=10*cm
 pbpbegin(w,h,'pdf')
-translate('center')
+translate(loc.center)
 
 # applystyle(thickLine)
 scaleto(1*cm)
@@ -18,7 +18,7 @@ ipts = [ Polar(r/1.5,k/3+0.5) for k in range(3) ]
 
 # Draw inner triangle
 setlinecolor(color.red)
-draw(polygon,ipts)
+build(polygon,ipts)
 stroke()
 
 # Draw connecting segments
@@ -30,7 +30,7 @@ stroke()
 
 # Draw outer vertices
 setlinecolor(color.red)
-draw(polygon,bdypts)
+build(polygon,bdypts)
 stroke()
 
 setlinecolor(color.black)
@@ -40,7 +40,7 @@ for l in labels:
   v = (Polar(r,t)+Polar(r,t+1/6))/2 # Midpoint of edge
   dv = vector(15*pt,v)              # Additional 15pt away from center
   moveto(v+dv)
-  drawtex(l,origin='center')
+  drawtex(l,origin=loc.center)
   t += 1/6
 
 pbpend()
