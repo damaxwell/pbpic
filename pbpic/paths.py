@@ -3,16 +3,25 @@ from math import cos, sin, sqrt, pi
 from geometry import Point, Vector, Polar
 import random
 
-def arc(canvas,center=(0,0),r=0,t0=0,t1=0.5):
+def line(canvas,A,B):
+  canvas.moveto(A);
+  canvas.lineto(B);
+
+
+def arc(canvas,center=(0,0),r=0,t0=0,t1=0.5,orientation=1):
   """Draws a circular arc to the path of canvas with center c and radius r from cf angle t0 to cf angle t1.
   If no currentpoint exists, an initial moveto is done to the start of the arc, otherwise a lineto is performed.
   """
   c=center
-  s=1
-  if t1<t0:
+  if orientation == 1:
+    s=1
+    while t1<t0:
+      t1+=1
+  else:
     s=-1
-  # while t1<t0:
-  #   t1+=1
+    while t1>t0:
+      t1-=1
+    
   xc = c[0]; yc=c[1]
   x0 = xc+r*cos(2*pi*t0); y0 = yc+r*sin(2*pi*t0);
   if canvas.currentpointexists():
@@ -53,7 +62,7 @@ def circle(canvas,r=1):
   arc(canvas,c,r,0,1)
   canvas.closepath()
 
-def wedge(canvas,r=1,v1=[0,1],v2=[1,0]):
+def wedge(canvas,r=1,v1=[0,1],v2=[1,0],orientation=1):
   """Adds a wedge to path with radius r with one side parallel to v1 and another parallel to v2.  The curve of the wedge travels counterclockwise
   from v1 to v2"""
   
@@ -61,7 +70,7 @@ def wedge(canvas,r=1,v1=[0,1],v2=[1,0]):
   canvas.moveto(p0)
   t1=Vector(v1[0],v1[1]).angle()
   t2=Vector(v2[0],v2[1]).angle()
-  arc(canvas,p0,r,t1,t2)
+  arc(canvas,p0,r,t1,t2,orientation=orientation)
   canvas.closepath()
 
 

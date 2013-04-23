@@ -86,3 +86,23 @@ class XTicks:
   def drawto(self,canvas,x=[0,1],y=0):
     for xc in x:
       canvas.draw(self.xtick,at=(xc,y))
+
+class YTick:
+  def __init__(self,**kwargs):
+    updatefromstyle(self,('ticklength',),kwargs)
+  def drawto(self,canvas):
+    canvas.rmoveto(-self.ticklength/2,0)
+    canvas.rlineto(self.ticklength,0)
+    canvas.stroke()
+
+class YTicks:
+  @staticmethod
+  def defaultStyle():
+    return Style(ytick=YTick())
+  def __init__(self,**kwargs):
+    updatefromstyle(self,('ytick',),kwargs)
+    if type(self.ytick) == types.ClassType:
+      self.ytick = self.ytick()  
+  def drawto(self,canvas,y=[0,1],x=0):
+    for yc in y:
+      canvas.draw(self.ytick,at=(x,yc))
