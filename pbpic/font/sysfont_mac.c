@@ -107,8 +107,9 @@ static PyObject *py_is_resource_font( PyObject *self, PyObject *args )
 static PyObject *py_load_resource_font( PyObject *self, PyObject *args )
 {
   char *fontPath = NULL;
+  int fontPathLength = 0;
   int fontIndex = 0;
-  if( !PyArg_ParseTuple( args, "sd", &fontPath,&fontIndex ) )
+  if( !PyArg_ParseTuple( args, "s#i", &fontPath,&fontPathLength,&fontIndex ) )
   {
     return NULL;
   }

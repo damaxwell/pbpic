@@ -10,6 +10,8 @@ except:
     @staticmethod
     def find_font(fontname): return (None,None,None,None)
     @staticmethod
+    def load_raw(fontname): return None
+    @staticmethod
     def load(fontname): return None
     @staticmethod
     def font_type(fontpath): return fontTypeFromExtension(fontpath)
@@ -29,6 +31,15 @@ class FontDescriptor:
   @property
   def faceindex(self):
     return self._faceindex
+
+  def load_raw(self):
+    font_data = None
+    font_data = sysfont_platform.load_raw(self);
+
+    if not font_data is None:
+      return font_data
+
+    return file(self._path).read()
 
   def __eq__(self,rhs):
     if not isinstance(rhs,FontDescriptor): return False
@@ -94,7 +105,7 @@ def fontTypeFromExtension(path):
   return None
 
 def load(font_descriptor):
-  """Returns the physical font associated witha font descriptor."""
+  """Returns the physical font associated with a font descriptor."""
   font = None
   font = sysfont_platform.load(font_descriptor);
   
@@ -115,7 +126,6 @@ def load(font_descriptor):
     return truetype.TrueTypeFont(open(path,'rb'),offsetTableStart=offset)
 
   raise Exception('Unknown font type for file %s',self.path)
-
 
 class PhysicalFontCache:
   def __init__(self):

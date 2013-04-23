@@ -143,9 +143,8 @@ class CairoRenderer:
     pageToDevice=self.llOriginMatrix
     self.ctx.set_matrix(cairo.Matrix(*tm.asTuple())*pageToDevice)
 
-    # FIXME: save fontdescriptor?
-    ftFont = ftFontForDescriptor(fontdescriptor)
-    self.ctx.set_font_face(ftFont)
+    # FIXME: don't call set_font_face if fontdescriptor is current?
+    self.ctx.set_font_face( cairoFontForDescriptor(fontdescriptor) )
 
     # gstate.updatefont(self)
     if self.color != _Font:
@@ -217,70 +216,94 @@ class CairoRenderer:
 
 import ctypes, ctypes.util
 import cairo
-
-ftFontCache = {}
-def ftFontForDescriptor(descriptor):
-  global ftFontCache
-  ftFont = ftFontCache.get(descriptor,None)
-  if ftFont:
-    return ftFont
-  ftFont = create_cairo_font_face_for_file(descriptor.path,descriptor.faceindex)
-  ftFontCache[descriptor] = ftFont
-  return ftFont
-
-
-_initialized = False
 class PycairoContext(ctypes.Structure):
     _fields_ = [("PyObject_HEAD", ctypes.c_byte * object.__basicsize__),
         ("ctx", ctypes.c_void_p),
         ("base", ctypes.c_void_p)]
 
-def create_cairo_font_face_for_file (filename, faceindex=0, loadoptions=0):
-    global _initialized
-    global _freetype_so
-    global _cairo_so
-    global _ft_lib
-    global _surface
+FT_Err_Ok = 0
+CAIRO_STATUS_SUCCESS = 0
 
-    CAIRO_STATUS_SUCCESS = 0
-    FT_Err_Ok = 0
+class CairoFreetypeFont:
+  _freetype_so = None
+  _cairo_so = None
+  _ft_lib = None
+  _surface = None
 
-    if not _initialized:
+  @staticmethod
+  def initialize():
+    # find shared objects
+    CairoFreetypeFont._freetype_so = ctypes.CDLL (ctypes.util.find_library("freetype") )
+    CairoFreetypeFont._cairo_so = ctypes.CDLL ( ctypes.util.find_library("cairo") )
 
-        # find shared objects
-        _freetype_so = ctypes.CDLL (ctypes.util.find_library("freetype") )
-        _cairo_so = ctypes.CDLL ( ctypes.util.find_library("cairo") )
+    # initialize freetype
+    CairoFreetypeFont._ft_lib = ctypes.c_void_p ()
+    if FT_Err_Ok != CairoFreetypeFont._freetype_so.FT_Init_FreeType (ctypes.byref (CairoFreetypeFont._ft_lib)):
+      raise "Error initialising FreeType library."
 
-        # initialize freetype
-        _ft_lib = ctypes.c_void_p ()
-        if FT_Err_Ok != _freetype_so.FT_Init_FreeType (ctypes.byref (_ft_lib)):
-          raise "Error initialising FreeType library."
+    CairoFreetypeFont._surface = cairo.ImageSurface (cairo.FORMAT_A8, 0, 0)
 
-        _surface = cairo.ImageSurface (cairo.FORMAT_A8, 0, 0)
+  def __init__(self,descriptor,loadoptions=0):
+    self.ft_face = None
+    self.cairo_face = None
+    self.font_data = None
 
-        _initialized = True
+    if self._freetype_so is None:
+      CairoFreetypeFont.initialize()
 
     # create freetype face
     ft_face = ctypes.c_void_p()
-    cairo_ctx = cairo.Context (_surface)
-    cairo_t = ctypes.c_void_p(PycairoContext.from_address(id(cairo_ctx)).ctx)
-    if FT_Err_Ok != _freetype_so.FT_New_Face(_ft_lib, filename, faceindex, ctypes.byref(ft_face)):
-        raise Exception("Error creating FreeType font face for " + filename)
+    if descriptor.type == "RES":
+      # We can't trust freetype's interpretation of 'faceindex' for resource-based fonts; it
+      # varies among parts of the freetype codebase.  So we load the font into memory 
+      # and create a memory-based freetype font.
+      self.font_data = descriptor.load_raw()
+      if self.font_data is None:
+        raise Exception("Error creating FreeType resource font face for " + filename)
+      if FT_Err_Ok != self._freetype_so.FT_New_Memory_Face(self._ft_lib, self.font_data, len(self.font_data), 0, ctypes.byref(ft_face)):
+            raise Exception("Error creating FreeType memory font face for " + filename)
+    else:
+      if FT_Err_Ok != self._freetype_so.FT_New_Face(self._ft_lib, filename, faceindex, ctypes.byref(ft_face)):
+          raise Exception("Error creating FreeType font face for " + filename)
+    self.ft_face = ft_face
 
     # create cairo font face for freetype face
-    _cairo_so.cairo_ft_font_face_create_for_ft_face.restype = ctypes.c_void_p
-    cr_face = _cairo_so.cairo_ft_font_face_create_for_ft_face (ft_face, loadoptions)
+    self._cairo_so.cairo_ft_font_face_create_for_ft_face.restype = ctypes.c_void_p
+    cr_face = self._cairo_so.cairo_ft_font_face_create_for_ft_face (ft_face, loadoptions)
     cr_face = ctypes.c_void_p(cr_face) # Convert the returned integer to a pointer.
-    if CAIRO_STATUS_SUCCESS != _cairo_so.cairo_font_face_status (cr_face):
+    if CAIRO_STATUS_SUCCESS != self._cairo_so.cairo_font_face_status (cr_face):
         raise Exception("Error creating cairo font face for " + filename)
 
-    _cairo_so.cairo_set_font_face (cairo_t, cr_face)
-    if CAIRO_STATUS_SUCCESS != _cairo_so.cairo_status (cairo_t):
+    cairo_ctx = cairo.Context (self._surface)
+    cairo_t = ctypes.c_void_p(PycairoContext.from_address(id(cairo_ctx)).ctx)
+    self._cairo_so.cairo_set_font_face (cairo_t, cr_face)
+    if CAIRO_STATUS_SUCCESS != self._cairo_so.cairo_status (cairo_t):
         raise Exception("Error creating cairo font face for " + filename)
 
-    face = cairo_ctx.get_font_face ()
+    self.cairo_face = cairo_ctx.get_font_face ()
 
-    return face
+  def __del__(self):
+    # FIXME: This doesn't matter much as it is being used, but
+    # we should really ensure that the cairo face has been destroyed
+    # before destroying the freetype face.  Alternatively, we could
+    # attach a destructor to the cairo face to call FT_Done_Face
+    # See, e.g., 
+    # http://cairographics.org/manual/cairo-FreeType-Fonts.html#cairo-ft-font-face-create-for-ft-face
+    if self.ft_face is not None:
+      self._freetype_so.FT_Done_Face(self.ft_face)
+
+ftFontCache = {}
+def cairoFontForDescriptor(descriptor):
+  global ftFontCache
+  ftFont = ftFontCache.get(descriptor,None)
+  if ftFont:
+    return ftFont
+  ftFont = CairoFreetypeFont(descriptor)
+  ftFontCache[descriptor] = ftFont
+  return ftFont.cairo_face
+
+
+
 
 class PDFRenderer(CairoRenderer):
   def __init__(self,filename):

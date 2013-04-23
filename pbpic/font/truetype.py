@@ -1454,12 +1454,19 @@ class tt_cmap:
 
     self.glyphIndexArray = [ cmap.getUInt16() for k in xrange( cmap.dataRemaining() ) ]
 
+  def __repr__(self):
+    s="startCode\n%s\n" % self.startCode
+    s+="endCode\n%s\n" % self.endCode
+    s+="delta\n%s\n" % self.delta
+    s+="range offset\n%s" % self.rangeOffset
+    return s
+
   def glyphForChar( self, c ):
     if isinstance(c,str):
       c=ord(c)
     k = 0
     for n in self.endCode:
-      if n > c:
+      if n >= c:
         break
       k += 1
 

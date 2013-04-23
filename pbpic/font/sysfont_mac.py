@@ -8,14 +8,21 @@ def find_font(name):
   if fontData[3]:
     return (fontData[0],fontData[1],fontData[2],'RES')
   return (fontData[0],fontData[1],fontData[2],None)
-    
+
+def load_raw(fd):
+  if fd.type == 'RES':
+    font_data = _sysfont_mac.load_resource_font(fd.path,fd.faceindex);
+    ttf = truetype.TrueTypeFont.fromData(font_data)
+    return font_data
+  return None
 
 def load(fd):
   if fd.type == 'RES':
     font_data = _sysfont_mac.load_resource_font(fd.path,fd.faceindex);
     if font_data is None:
       return None
-    return truetype.TrueTypeFont.fromData(font_data)
+    ttf = truetype.TrueTypeFont.fromData(font_data)
+    return ttf
   return None
 
 
