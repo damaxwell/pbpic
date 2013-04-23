@@ -1,5 +1,5 @@
 from __future__ import division
-from style import updatefromstyle, Style
+from pbpstyle import updatefromstyle, Style
 from geometry import Vector, Point
 import misc 
 import math

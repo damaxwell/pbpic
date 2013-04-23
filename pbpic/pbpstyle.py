@@ -1,4 +1,4 @@
-import exception, sys
+import exception, sys, inspect
 
 _stylestack = [{}]
 
@@ -22,7 +22,7 @@ def clearstyles():
   global _stylestack
   _stylestack = [{}]
 
-def style(obj,keys):
+def getstyle(obj,keys):
   if isinstance(keys,str):
     return _onestyle(obj,keys)
   rv = {}
@@ -48,12 +48,12 @@ def _onestyle(obj,key,toplevel=True):
       return defaults.get(key)
 
   if hasattr(obj,'__module__'):
-    return _onestyle(sys.modules[obj.__module__],key)
+    return _onestyle(sys.modules[obj.__module__],key,toplevel=False)
 
   if hasattr(obj,'__package__'):
     p = obj.__package__
     if (p is not None) and obj.__name__ != p:
-      return _onestyle(sys.modules[obj.__package__],key)
+      return _onestyle(sys.modules[obj.__package__],key,toplevel=False)
 
   return None
 
@@ -77,3 +77,48 @@ def updatefromstyle(obj,keys,overrides,stylekey=None):
       d[k] = overrides[k]
     else:
       d[k] = _onestyle(stylekey,k)
+
+
+class StyleTarget:
+  def __init__(self,obj,parent=None):
+    self.__dict__['_obj']=obj
+    self.__dict__['_parent']=parent
+
+  def __getattr__(self,name):
+    obj = self.__dict__['_obj']
+
+    if obj is None:
+      child = None
+      # Look up the name in the caller's namespace
+      frame = inspect.stack()[1][0]
+      try:
+        if frame.f_locals.has_key(name):
+          child = frame.f_locals.get(name)
+        elif frame.f_globals.has_key(name):
+          child = frame.f_globals.get(name)
+      finally:
+        del frame
+      if inspect.ismodule(child):
+        return StyleTarget(child,None)
+      raise Exception("Style tree: no style target for %s" % name)
+
+    moduletype = type(inspect.getmodule(inspect))
+
+    if inspect.ismodule(obj):
+      child = obj.__dict__.get(name)
+      if child is not None:
+        return StyleTarget(child,parent=self)
+
+    return getstyle(obj,name)
+
+  def __setattr__(self,name,value):
+    obj = self.__dict__['_obj']
+    setstyle(obj,name=value)
+
+  def __str__(self):
+    return self.__repr__()
+
+  def __repr__(self):
+    obj = self.__dict__['_obj']
+    parent = self.__dict__['_parent']
+    return "StyleTarget %s (parent = %s)" % (obj,parent)

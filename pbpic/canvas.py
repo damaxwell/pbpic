@@ -9,6 +9,23 @@ import math
 dx = Vector(1,0)
 dy = Vector(0,1)
 
+# The global canvas for drawing into
+_canvas = None
+# Global stack for canvasses to draw into.
+_canvasstack = []
+def pushcanvas(c):
+  global _canvas, _canvasstack
+  _canvasstack.append(_canvas)
+  _canvas = c
+
+def popcanvas():
+  global _canvas, _canvasstack
+  _canvas = _canvasstack.pop()
+
+def getcanvas():
+  global _canvas
+  return _canvas
+
 def nobuild(func):
   def nobuildfunc(self,*args,**kwargs):
     if self.building:
@@ -115,6 +132,12 @@ class Canvas:
     Tinv = self.gstate.ctm.inverse()
     path.apply(Tinv)
     return path
+
+  def __enter__(self):
+    pushcanvas(self)
+  def __exit__(self,exc_type, exc_value, traceback):
+    popcanvas()
+    return False
 
   @nobuild
   def gsave(self):
@@ -620,6 +643,7 @@ class CTMRestorer:
   def __exit__(self,exc_type, exc_value, traceback):
     self.canvas.ctmrestore()
     return False
+
 
 class PathBuilder:
   def __init__(self,canvas):

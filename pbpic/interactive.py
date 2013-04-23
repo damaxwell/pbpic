@@ -1,11 +1,9 @@
-from canvas import Canvas
+import canvas
 from inset import Inset
 import inspect, os
 from pbptex import texinset
 import logging
 
-# The global canvas for drawing into
-_canvas = None
 
 # In the event that the extents of _canvas are not known when
 # it is created, _canvas will be an Inset.  At the end,
@@ -13,18 +11,7 @@ _canvas = None
 # actual renderer to be used.
 _finalcanvas = None
 
-# Global stack for canvasses to draw into.
-_canvasstack = []
-def pushcanvas(c):
-  global _canvas, _canvasstack
-  _canvasstack.append(_canvas)
-  _canvas = c
-
-def popcanvas():
-  global _canvas, _canvasstack
-  _canvas = _canvasstack.pop()
-
-template = 'def %s(*args,**kwargs): global _canvas; return _canvas.%s(*args,**kwargs)'
+template = 'def %s(*args,**kwargs): return canvas._canvas.%s(*args,**kwargs)'
 functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', 'ctmconcat',  'window', # methods that affect the CTM
               'setlinewidth', 'linewidth', 'setlinecolor', 'linecolor',  # methods that affect the line state 
               'setlinecap', 'linecap', 'setlinejoin', 'linejoin', 'setdash', 'dash',
@@ -40,7 +27,7 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
               'write', 'setfont', 
               'setfontsize', 'fontsize', 'setwritingvector', 'writingvector',
               'setfontcolor', 'fontcolor',
-              'charpath',             # font
+              'charpath','stringwidth',             # font
               'build', 'draw', 'path',                                                   # high level path
               'point', 'vector', 'pagePoint', 'pageVector',             # point/vector transformations
               'extents', 'markpoint', 'getmark', 'addmarks' ]                                               # introspection
@@ -63,15 +50,13 @@ def setrenderer(ext,render_desc):
 def getrenderer(ext):
   return _rendertypes[ext]
 
-def getcanvas():
-  global _canvas
-  return _canvas
 
 def pbpbegin(w=None,h=None,target=None):
-  global _canvas,_finalcanvas
+  global _finalcanvas
   global _rendertypes
   
-  if not(_canvas is None):
+  c=canvas.getcanvas()
+  if not(c is None):
     logging.warning('Overwriting current canvas with a pbpbegin(). Did you forget to pbpend()?')
 
   renderer = None
@@ -89,7 +74,7 @@ def pbpbegin(w=None,h=None,target=None):
 
     if rendertype is None:
       print 'Unable to determine a renderer for %s. Drawing to an Inset instead.' % target
-      _canvas = Inset(w,h)
+      canvas.pushcanvas(Inset(w,h))
       return
     else:
       # The rendertype with either be a class for the renderer, or a tuple (modulename,classname)
@@ -106,37 +91,37 @@ def pbpbegin(w=None,h=None,target=None):
     renderer = target
 
   if renderer is None:
-    _canvas = Inset(w,h)
+    canvas.pushcanvas(Inset(w,h))
   elif (w is None) or (h is None):
-    _canvas = Inset(w,h)
-    _finalcanvas=Canvas(renderer=renderer)
+    canvas.pushcanvas( Inset(w,h) )
+    _finalcanvas=canvas.Canvas(renderer=renderer)
   else:
-    _canvas=Canvas(w=w,h=h,renderer=renderer)
+    canvas.pushcanvas( canvas.Canvas(w=w,h=h,renderer=renderer) )
 
-  _canvas.begin()
+  canvas.getcanvas().begin()
 
 def pbpend():
-  global _canvas, _finalcanvas
+  global _finalcanvas
 
-  if _canvas is None:
+  c=canvas.getcanvas()
+  if c is None:
     print('No current canvas to end with pbpend.')
     return
 
   # FIXME: check that we have popped everything off of the canvas stack?
-  _canvas.end()
+  c.end()
 
-  rv = _canvas
+  rv = c
   if not _finalcanvas is None:
     # The top canvas should be an inset.  Determine its bounding box, set the boundingbox of the cavnas, and do a simple draw.
-    bbox = _canvas._extents
+    bbox = c._extents
     if bbox is None:
-      bbox=_canvas.markedbox()
+      bbox=c.markedbox()
     _finalcanvas.begin(bbox=bbox)
-    _finalcanvas.draw(_canvas)
+    _finalcanvas.draw(c)
     _finalcanvas.end()
     rv = _finalcanvas
-    
-  _canvas=None
+  canvas.popcanvas()
   _finalcanvas=None
   return rv
 
@@ -149,21 +134,21 @@ class InsetGuard:
     self.i_kwargs = kwargs
 
   def __enter__(self):
-    global _canvas
     self.i = Inset(*self.i_args,**self.i_kwargs)
     # self.i.begin()
-    _canvas.gstate.copystyle(self.i)
-    pushcanvas(self.i)
+    canvas.getcanvas().gstate.copystyle(self.i)
+    canvas.pushcanvas(self.i)
     return self.i
 
   def __exit__(self,*args):
     # self.i.end()
-    popcanvas()
+    canvas.popcanvas()
     return False
 
 def drawtex(text,*args,**kwargs):
+  c=canvas.getcanvas()
   i = texinset(text)
   if not kwargs.has_key('origin'):
     kwargs['origin']='origin'
-  i.drawto(_canvas,**kwargs)
+  i.drawto(c,**kwargs)
 

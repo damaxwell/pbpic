@@ -5,7 +5,7 @@ import inset
 from misc import FileSweeper
 from tex.devicefont import FontTable
 from geometry import BBox
-import style
+import pbpstyle as style
 import color
 from metric import pt
 import userprefs
@@ -78,7 +78,6 @@ class TexProcessor:
     
   def run(self,text,texFileName=None):
     body = self.preamble + text + self.postamble
-
     self._dvi = dviCache().load(self.command,body)
     if not self._dvi is None:
       return
