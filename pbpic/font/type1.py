@@ -340,6 +340,7 @@ class CharStringParser:
 
     self.flexpoints = 12*[0]
     self.flexstate = -1
+    self.debug = False
 
   def printstack(self):
     s = '[ '
@@ -395,9 +396,13 @@ class CharStringParser:
         if isinstance(c,int):
           self.stack[self.top] = c
           self.top += 1
+          if self.debug:
+            print 'charstring %d' % c
         else:
           opcode = c.val
           cmd = self.opcodeToCmd[opcode]
+          if self.debug:
+            print 'charstring: %s' % cmd[0]
           callback = self.callbacks.get(opcode,None)
           if callback is None:
             if cmd[2]: self.top = 0
@@ -421,6 +426,11 @@ class CharStringParser:
         self.f = self.callstack.pop()
       except Halt:
         break
+
+class CharStringPrinter(CharStringParser):
+  def __init__(self,font,charstring):
+    CharStringParser.__init__(self,font,charstring)
+    self.debug = True
 
 class CharMetrics(CharStringParser):
   def __init__(self,font,charstring):
