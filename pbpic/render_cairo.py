@@ -263,6 +263,8 @@ class CairoFreetypeFont:
       if FT_Err_Ok != self._freetype_so.FT_New_Memory_Face(self._ft_lib, self.font_data, len(self.font_data), 0, ctypes.byref(ft_face)):
             raise Exception("Error creating FreeType memory font face for " + filename)
     else:
+      filename = descriptor.path
+      faceindex = descriptor.faceindex
       if FT_Err_Ok != self._freetype_so.FT_New_Face(self._ft_lib, filename, faceindex, ctypes.byref(ft_face)):
           raise Exception("Error creating FreeType font face for " + filename)
     self.ft_face = ft_face
@@ -297,7 +299,7 @@ def cairoFontForDescriptor(descriptor):
   global ftFontCache
   ftFont = ftFontCache.get(descriptor,None)
   if ftFont:
-    return ftFont
+    return ftFont.cairo_face
   ftFont = CairoFreetypeFont(descriptor)
   ftFontCache[descriptor] = ftFont
   return ftFont.cairo_face
