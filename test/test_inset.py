@@ -18,7 +18,7 @@ def TestInsetRotate():
     pbp.stroke(color.red)
   print i
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas())
+  pbp.draw(i)
 
 
 @PngTest(w=3,h=3)
@@ -35,7 +35,7 @@ def TestInsetRotate2():
     pbp.setlinewidth(0.25*cm)
     pbp.stroke(color.red)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i,origin=loc.center)
 
 
 @PngTest(w=8,h=4)
@@ -52,7 +52,7 @@ def TestInsetWrite():
   print i
   pbp.translate(3,0)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas())
+  pbp.draw(i)
 
 
 @PngTest(w=8,h=4)
@@ -72,7 +72,7 @@ def TestInsetWriteRotate():
   pbp.translate(3,0)
   pbp.moveto(2,2)
   pbp.rotate(1/8.)
-  i.drawto(pbp.getcanvas())
+  pbp.draw(i)
 
 @PngTest(8,4)
 def TestInsetInInset():
@@ -97,7 +97,7 @@ def TestInsetInInset():
   pbp.scaleto(1*cm)
   pbp.translate(2,2)
   pbp.moveto(0,0)
-  i1.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i1,origin=loc.center)
   
   pbp.translate(4,0)  
   with pbp.inset(2*cm,2*cm) as i2:
@@ -109,7 +109,7 @@ def TestInsetInInset():
     pbp.stroke()
 
   pbp.moveto(0,0)
-  i2.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i2,origin=loc.center)
 
 @PngTest(6,3)
 def TestInsetLinewidth():
@@ -124,12 +124,12 @@ def TestInsetLinewidth():
     pbp.stroke()
   pbp.translate(1.5,1.5)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i,origin=loc.center)
 
   pbp.translate(3,0)
   pbp.rotate(1/8.)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i,origin=loc.center)
 
 
 @PngTest(6,3)
@@ -145,12 +145,12 @@ def TestInsetFontsize():
     pbp.write("Hi.")
   pbp.translate(1.5,1.5)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i,origin=loc.center)
 
   pbp.translate(3,0)
   pbp.rotate(1/8.)
   pbp.moveto(0,0)
-  i.drawto(pbp.getcanvas(),origin=loc.center)
+  pbp.draw(i,origin=loc.center)
   
 
 @PngTest(16,8)
@@ -195,7 +195,7 @@ def TestInsetBorderSquare():
           pbp.stroke() # Outer square border
 
         pbp.moveto(0,0)
-        i.drawto(pbp.getcanvas(),origin=loc.border(w))
+        pbp.draw( i, origin=loc.border(w))
 
         with pbp.gsave():
           pbp.scaleto(1*cm)

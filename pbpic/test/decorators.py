@@ -60,7 +60,7 @@ class ExampleTest:
         os.remove(output_filename)
       finally:
         pbp.setrenderer('pdf',old_renderer)
-        pbp.style.clearstyles()
+        pbp.pbpstyle.clearstyles()
       
     EgTest.__name__ = func.__name__
     return EgTest
@@ -81,7 +81,7 @@ class PngTest:
         func()
       finally:
         pbp.pbpend()
-        pbp.style.clearstyles()
+        pbp.pbpstyle.clearstyles()
 
       output_image = np.array(Image.open(output_filename),dtype='int16')
       baseline_image = np.array(Image.open(baseline_filename),dtype='int16')
