@@ -149,6 +149,7 @@ class Canvas:
 
   @nobuild
   def grestore(self):
+
     if len(self.gstack) <=0:
       raise exception.StackUnderflow("Extra grestore")
     
@@ -619,7 +620,8 @@ class Canvas:
         raise TypeError()
     finally:
       while self.gstack[-1] is not None:
-        self.gstack.pop()
+        self.grestore()
+      self.gstack.pop()
       # FIXME: Verify that the gstate was not altered?
       self.newpath()
 
