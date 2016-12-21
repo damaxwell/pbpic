@@ -53,7 +53,7 @@ setup(name="pbpic",
     description="Methmatical vector graphics",
     author="David Maxwell",
     author_email="damaxwell@alaska.edu",
-    packages = [ "pbpic" ],
+    packages = [ "pbpic", "pbpic.font", "pbpic.tex" ],
     ext_modules = ExtensionModules,
     # package_data = { 
     #   "pbpic":   [ "examples/*.py", 
