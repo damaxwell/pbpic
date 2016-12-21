@@ -1,5 +1,5 @@
 import math, types
-from style import updatefromstyle, Style
+from pbpstyle import updatefromstyle, Style
 from pbpic import pt
 
 def graph(canvas,f,x0,x1,N=200):
