@@ -11,7 +11,7 @@ def TestTexStyle():
     pbp.build(pbp.paths.circle,1.,at=(0,0))
   pbp.fill(color.red)
   pbp.moveto(0,0)
-  pbp.style.setstyle(pbp.pbptex,preamble=r'\documentclass[10pt]{article}\pagestyle{empty}\begin{document}')
+  pbp.pbpstyle.setstyle(pbp.pbptex,preamble=r'\documentclass[10pt]{article}\pagestyle{empty}\begin{document}')
   pbp.drawtex("Hello")
 
 @PngTest(w=3,h=3)
