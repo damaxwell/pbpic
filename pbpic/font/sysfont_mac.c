@@ -230,7 +230,7 @@ int font_data_for_name( const char *fontName, FontData *f)
     {
       return FONT_NOT_FOUND;
     }
-    status = FSpMakeFSRef(fsSpec,&fsref);    
+    status = FSpMakeFSRef(&fsSpec,&fsref);    
   }
 #endif
   if(status!=noErr)
