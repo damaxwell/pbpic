@@ -9,6 +9,7 @@ except:
 import font
 import devicefont
 import pbpic.userprefs as userprefs
+import os
 
 class _TexPathCache:
   def __init__(self):
@@ -29,7 +30,7 @@ class TexPathCache(userprefs.PersistantCache):
 pathCache = TexPathCache()
 
 def resetTexCache():
-  pathCache.clear()
+  pathCache.reset()
 
 class TexResourceNotFound(Exception):
   def __init__(self,msg):
@@ -37,6 +38,10 @@ class TexResourceNotFound(Exception):
 
 def findVFPath(fn):
   fontPath = pathCache().vfPathCache.get(fn)
+  # We have to look for virtual fonts first.  If we don't find one,
+  # and do nothing, there will be nothing in the cache, so every run
+  # will require hitting kpsewhich to find the font.  Instead,
+  # we store and invalid font path ('') if no virtual font is found
   if fontPath is None:
     fontPath = find(fn, formats.VF_TYPE)
     if fontPath is None:
@@ -114,6 +119,7 @@ def findMapFile(m):
 encDict = {}
 def findEncoding(e):
   enc = encDict.get(e,None)
+
   if enc is None:
     p = findEncodingPath( e )
     enc = devicefont.encodingVectorFromFile(p)
