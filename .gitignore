@@ -9,3 +9,4 @@ build
 *.pdf
 docs/pbpic-figures
 pbpic.egg-info
+test/images-test/*
