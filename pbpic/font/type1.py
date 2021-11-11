@@ -1,7 +1,7 @@
-import StringIO
+from io import StringIO
 import array
 from pbpic.geometry import AffineTransform, Path, Vector, Point
-from font import FontMetrics
+from .font import FontMetrics
 import re
 
 class Type1Exception(Exception):
@@ -348,7 +348,7 @@ class CharStringParser:
       s += str(k)
       s += ' '
     s += ']'
-    print s
+    print(s)
   
   def rrcurveto(*args):
     pass
@@ -373,7 +373,7 @@ class CharStringParser:
                  # stack and is about to reappear in a subsequent 'pop' that always follows callothersubr
       pass
     else:
-      print 'warning: unknown othersubr %d called' % n
+      print('warning: unknown othersubr %d called' % n)
 
   def pop(self):
     self.top += 1 
@@ -397,12 +397,12 @@ class CharStringParser:
           self.stack[self.top] = c
           self.top += 1
           if self.debug:
-            print 'charstring %d' % c
+            print('charstring %d' % c)
         else:
           opcode = c.val
           cmd = self.opcodeToCmd[opcode]
           if self.debug:
-            print 'charstring: %s' % cmd[0]
+            print('charstring: %s' % cmd[0])
           callback = self.callbacks.get(opcode,None)
           if callback is None:
             if cmd[2]: self.top = 0
@@ -649,7 +649,7 @@ def encryptBytesSlow(bytes, R):
 if __name__ == '__main__':
   # f = Type1Font.fromPath('../test/cmr10.pfb')
   f = Type1Font.fromPath('../test/MinionPro-Regular.pfb')
-  print BuildChar(f,'A').path()
+  print( BuildChar(f,'A').path() )
   # subr = f.subroutine(2)
   # print subr.text
   # print subr.plainText

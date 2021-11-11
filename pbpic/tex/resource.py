@@ -3,11 +3,11 @@ try:
   find=pykpse.find
   formats=pykpse
 except:
-  import kpsewhich
+  from . import kpsewhich
   find=kpsewhich.find
   formats = kpsewhich
-import font
-import devicefont
+from . import font
+from . import devicefont
 import pbpic.userprefs as userprefs
 import os
 

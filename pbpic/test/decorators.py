@@ -43,7 +43,7 @@ class ExampleTest:
       old_renderer=pbp.getrenderer('pdf')
       try:
         pbp.setrenderer('pdf',ReroutePDFRenderer)
-        exec 'import %s' % self.filename in locals()
+        exec('import %s' % self.filename,globals=locals())
 
         output_image = np.array(Image.open(output_filename),dtype='uint8')
         baseline_image = np.array(Image.open(baseline_filename),dtype='uint8')

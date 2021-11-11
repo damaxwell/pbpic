@@ -1,4 +1,4 @@
-import truetype, type1, sysfont
+from . import truetype, type1, sysfont
 from pbpic.geometry import Vector
 
 class Font:

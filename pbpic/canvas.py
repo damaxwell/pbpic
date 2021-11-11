@@ -1,9 +1,9 @@
-from geometry import Point, Vector, BBox, AffineTransform
-from metric import Length, PagePoint, PageVector, Units
-from mark import NamedMarks, BBoxMarks
-import exception
-from gstate import GState
-from font import pbpfont, sysfont
+from .geometry import Point, Vector, BBox, AffineTransform
+from .metric import Length, PagePoint, PageVector, Units
+from .mark import NamedMarks, BBoxMarks
+from . import exception
+from .gstate import GState
+from .font import pbpfont, sysfont
 import math
 
 dx = Vector(1,0)

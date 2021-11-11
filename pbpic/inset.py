@@ -1,8 +1,8 @@
-from canvas import Canvas
-from geometry import BBox, AffineTransform
-from render_bbox import BBoxRenderer
-from metric import pt, PagePoint
-import mark
+from .canvas import Canvas
+from .geometry import BBox, AffineTransform
+from .render_bbox import BBoxRenderer
+from .metric import pt, PagePoint
+from . import mark
 
 class Inset(Canvas):
   
@@ -76,7 +76,7 @@ class Inset(Canvas):
 
   for m in wrapped_methods:
     filled_template = template % (m,m,m)
-    exec filled_template in globals(), locals()
+    exec(filled_template, globals(), locals())
 
   def  moveto(self,*args):
     p=self.pagePoint(*args)

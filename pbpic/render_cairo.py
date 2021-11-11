@@ -1,8 +1,8 @@
 import cairo
 import logging 
-from geometry import Point
+from .geometry import Point
 import math
-from color import GrayColor
+from .color import GrayColor
 
 
 line_join_to_cairo={'bevel':cairo.LINE_JOIN_BEVEL, 'miter':cairo.LINE_JOIN_MITER, 'round':cairo.LINE_JOIN_ROUND}

@@ -1,6 +1,6 @@
 import cairo
-from geometry import BBox, Path, AffineTransform
-from font import sysfont
+from .geometry import BBox, Path, AffineTransform
+from .font import sysfont
 import math
 
 

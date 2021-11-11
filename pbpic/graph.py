@@ -1,6 +1,6 @@
 import math, types
-from pbpstyle import updatefromstyle, Style
-from pbpic import pt
+from .pbpstyle import updatefromstyle, Style
+from .metric import pt
 
 def graph(canvas,f,x0,x1,N=200):
   dx = float(x1-x0)/N

@@ -1,8 +1,8 @@
 import logging
 # import AsciiHex # For conversion to Type42
 from pbpic.geometry import Path
-import cStringIO as StringIO
-from font import FontMetrics
+from io import StringIO
+from .font import FontMetrics
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -288,7 +288,6 @@ class tt_directory:
   def printTables(self):
     d = ttReader( self.tableDirectory )
     for k in xrange( self.numTables ):
-      print d.getTag()
       d.skip( 12 );
     
 
@@ -456,7 +455,7 @@ class TrueTypeFont:
 
   def printTables( self ):
     d = ttReader( self.tableDirectory )
-    print "Font with %d tables" % self.numTables
+    print("Font with %d tables" % self.numTables)
     for k in xrange( self.numTables ):
       this_tag = d.getTag()
       d.skip(4)
@@ -1520,8 +1519,8 @@ class tt_name:
   def printNameRecords( self ):
     for k in xrange( self.count ):
       nr = self.nameRecord( k )
-      print "Name record: plat_id %d plat_spec_id %d lang_id %d name_id %d len %d off %d" % (nr.platform_id,
-        nr.platform_spec_id, nr.language_id, nr.name_id, nr.length, nr.offset ) 
+      print("Name record: plat_id %d plat_spec_id %d lang_id %d name_id %d len %d off %d" % (nr.platform_id,
+        nr.platform_spec_id, nr.language_id, nr.name_id, nr.length, nr.offset ) )
 
   def printStringsForPlatform( self, plat_id ):
     for k in xrange( self.count ):
@@ -1529,7 +1528,7 @@ class tt_name:
       if nr.platform_id == plat_id:
         self.name.seek( self.stringOffset + nr.offset );
         s = self.name.getString( nr.length )
-        print "String %d: (id %d) %s" % (k, nr.name_id, s )
+        print("String %d: (id %d) %s" % (k, nr.name_id, s ))
 
 if __name__ == '__main__':
 
@@ -1541,7 +1540,7 @@ if __name__ == '__main__':
     
 # cmap = tt_cmap( font.getTable('cmap') )
   post = tt_post( font.getTable('post'))
-  print post
+  print(post)
 # print font.familyName()
 # print font.subfamilyName()
 # print font.fullName()
@@ -1559,7 +1558,7 @@ if __name__ == '__main__':
   if len(sys.argv) > 2:
     s = sys.argv[2]
 
-    print "72 72 translate 0.001 0.001 scale 50 50 scale"
+    print("72 72 translate 0.001 0.001 scale 50 50 scale")
     for c in s:
 #     n = cmap.indexForChar( ord(c) )
       n = 1
@@ -1567,6 +1566,6 @@ if __name__ == '__main__':
       (contours, x, y, on ) = g.getOutline( )
       if len(contours) > 0:
         outlineToPS( contours, x, y, on )
-        print "fill\n"
+        print("fill\n")
       (advance,lsb) = font.metricsForGlyph( n )
-      print "%d 0 translate" % advance
+      print("%d 0 translate" % advance)

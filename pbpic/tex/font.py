@@ -1,5 +1,5 @@
-import cStringIO
-import common, resource
+from io import StringIO
+from . import common, resource
 
 class TexFont:
   def __init__(self,fontname,s,d,index):
@@ -53,7 +53,7 @@ class TFM:
   def __init__(self,path):
     with file(path,'rb') as f: 
       self.data = f.read()
-    self.input = cStringIO.StringIO(self.data); input = self.input
+    self.input = StringIO(self.data); input = self.input
     self.lf = common.readUInt2(input) # length of file
     self.lh = common.readUInt2(input) # length of header
     self.bc = common.readUInt2(input) # smallest char code

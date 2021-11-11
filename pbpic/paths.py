@@ -1,6 +1,6 @@
 from __future__ import division
 from math import cos, sin, sqrt, pi
-from geometry import Point, Vector, Polar
+from .geometry import Point, Vector, Polar
 import random
 
 def line(canvas,A,B):

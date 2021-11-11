@@ -1,4 +1,4 @@
-import resource, font
+from . import resource, font
 import logging
 import re
 from pbpic.font import type1, pbpfont, sysfont

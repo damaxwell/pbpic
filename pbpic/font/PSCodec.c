@@ -25,7 +25,6 @@ static PyObject *t1_decrypt( PyObject *self, PyObject *args )
 	unsigned short int c1 = 52845; 
 	unsigned short int c2 = 22719; 
 	unsigned char plain, cipher;
-	int i = 0;
 	while( c < end )
 	{
 		cipher = *c;
@@ -62,7 +61,6 @@ static PyObject *t1_encrypt( PyObject *self, PyObject *args )
 	unsigned short int c1 = 52845; 
 	unsigned short int c2 = 22719; 
 	unsigned char plain, cipher;
-	int i = 0;
 	while( c < end )
 	{
 		plain = *c;
@@ -81,8 +79,21 @@ PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC 
-initpscodec()
+// PyMODINIT_FUNC 
+// initpscodec()
+// {
+//   (void) Py_InitModule("pscodec", methods);   
+// }
+
+static struct PyModuleDef cModPyDem =
 {
-  (void) Py_InitModule("pscodec", methods);   
+    PyModuleDef_HEAD_INIT,
+    "pscodec", /* name of module */
+    "",          /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    methods
+};
+PyMODINIT_FUNC PyInit_pscodec(void)
+{
+    return PyModule_Create(&cModPyDem);
 }

@@ -1,7 +1,7 @@
-import canvas
-from inset import Inset
+from . import canvas
+from .inset import Inset
 import inspect, os
-from pbptex import texinset
+from .pbptex import texinset
 import logging
 
 
@@ -34,7 +34,7 @@ functions = [ 'scale', 'scaleto', 'translate', 'rotate', 'rrotate', 'drotate', '
 
 for f in functions:
   filled_template = template % (f,f)
-  exec filled_template in globals()
+  exec(filled_template, globals())
 
 _rendertypes={'pdf':('render_cairo','PDFRenderer'), 'png':('render_cairo','PNGRenderer')}
 
@@ -73,15 +73,17 @@ def pbpbegin(w=None,h=None,target=None):
       rendertype = _rendertypes.get(ext,None)
 
     if rendertype is None:
-      print 'Unable to determine a renderer for %s. Drawing to an Inset instead.' % target
+      print('Unable to determine a renderer for %s. Drawing to an Inset instead.' % target)
       canvas.pushcanvas(Inset(w,h))
       return
     else:
       # The rendertype with either be a class for the renderer, or a tuple (modulename,classname)
       # of strings describing the renderer's class.
       if isinstance(rendertype,tuple):
-        command = 'import %s;RendererClass=%s.%s' % (rendertype[0],rendertype[0],rendertype[1])
-        exec command
+        namespace = {}
+        command = 'from .%s import %s as RendererClass' % (rendertype[0],rendertype[1])
+        exec( command,None,namespace)
+        RendererClass = namespace["RendererClass"]
       else:
         RendererClass=rendertype
       renderer=RendererClass(filename)

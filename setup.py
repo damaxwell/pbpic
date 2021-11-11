@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup, Extension
-import ConfigParser
+import configparser
 
 # pykpse_module = Extension('pbpic/pykpse',
 #                     define_macros = [('MAJOR_VERSION', '1'),
@@ -24,7 +24,7 @@ sysfont_mac_module = Extension('pbpic/_sysfont_mac',
 ExtensionModules = []
 
 # obtain information on which modules have to be built from setup.cfg file
-cfg = ConfigParser.ConfigParser()
+cfg = configparser.ConfigParser()
 cfg.read("setup.cfg")
 
 # try:

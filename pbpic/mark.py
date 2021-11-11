@@ -1,5 +1,5 @@
-from geometry import BBox
-from metric import PagePoint
+from .geometry import BBox
+from .metric import PagePoint
 
 class Marks:
   def __getitem__(self,markname):

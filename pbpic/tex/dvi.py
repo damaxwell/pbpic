@@ -1,5 +1,5 @@
-import common, font
-import cStringIO
+from . import common, font
+from io import StringIO
 
 class DviReader:
   def __init__(self, input):
@@ -563,7 +563,7 @@ class StartVChar(DviCmd):
 
     r.scale *= (r.currentfont.s*1.0/(1 << 20))
 
-    r.input = cStringIO.StringIO(vFont.packets[self.c].dvi)
+    r.input = StringIO(vFont.packets[self.c].dvi)
     r.states = r.vfont_states
 
     defaultFont = vFont.defaultFont

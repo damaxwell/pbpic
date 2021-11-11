@@ -36,12 +36,12 @@ PyObject *PyString_FromCFStringRef(CFStringRef string)
   char *longBuf;
   if( CFStringGetCString(string,buf,256,kCFStringEncodingUTF8) )
   {
-    return PyString_FromString(buf);
+    return PyUnicode_FromString(buf);
   }
   CFIndex longLength = CFStringGetMaximumSizeForEncoding(CFStringGetLength(string),kCFStringEncodingUTF8);
   longBuf = malloc(longLength);
   CFStringGetCString(string,longBuf,longLength,kCFStringEncodingUTF8);
-  return PyString_FromString(longBuf);
+  return PyUnicode_FromString(longBuf);
 }
 
 static PyObject *py_find_font_for_name( PyObject *self, PyObject *args )
@@ -66,7 +66,7 @@ static PyObject *py_find_font_for_name( PyObject *self, PyObject *args )
  PyObject *rv = PyTuple_New( 4 );
  PyTuple_SET_ITEM( rv, 0,  pyPath );
  PyTuple_SET_ITEM( rv, 1, PyString_FromCFStringRef( theFont.psName ) );
- PyTuple_SET_ITEM( rv, 2, PyInt_FromLong(theFont.fontIndex) );
+ PyTuple_SET_ITEM( rv, 2, PyLong_FromLong(theFont.fontIndex) );
  if(theFont.isResource)
  {
    PyTuple_SET_ITEM( rv, 3, Py_True );   
@@ -134,7 +134,7 @@ static PyObject *py_load_resource_font( PyObject *self, PyObject *args )
   }
   CFRelease(url);
   
-  PyObject *fontContents = PyString_FromStringAndSize( *sfnt, fsize);
+  PyObject *fontContents = PyUnicode_FromStringAndSize( *sfnt, fsize);
   return fontContents;
 }
 
@@ -146,11 +146,25 @@ PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC 
-init_sysfont_mac()
+// PyMODINIT_FUNC 
+// init_sysfont_mac()
+// {
+//   PyObject *module = Py_InitModule("_sysfont_mac", methods);   
+// }
+
+static struct PyModuleDef cModPyDem =
 {
-  PyObject *module = Py_InitModule("_sysfont_mac", methods);   
+    PyModuleDef_HEAD_INIT,
+    "sysfont_mac", /* name of module */
+    "",          /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    methods
+};
+PyMODINIT_FUNC PyInit_sysfont_mac(void)
+{
+    return PyModule_Create(&cModPyDem);
 }
+
 
 
 /*

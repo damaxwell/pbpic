@@ -1,6 +1,6 @@
-import exception
-from geometry import BBox, Vector
-from metric import PagePoint
+from . import exception
+from .geometry import BBox, Vector
+from .metric import PagePoint
 
 __doc__="""Functions for extracting a desired page-point from a canvas."""
 
@@ -23,7 +23,7 @@ template = \
   return bbox_loc(canvas,"%s")"""
 for k in bboxcallbacks.keys():
   filled_template = template % (k,k,bboxcallback_longnames[k],k)
-  exec filled_template in globals()
+  exec(filled_template, globals())
 
 east=cr; west=cl; north=uc; south=lc; nw=ul; ne=ur; sw=ll; se=lr
 

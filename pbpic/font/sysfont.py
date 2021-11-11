@@ -1,5 +1,5 @@
 import os.path
-import truetype, type1
+from . import truetype, type1
 import pbpic.exception
 
 try:

@@ -1,10 +1,10 @@
 from __future__ import division
-from pbpstyle import updatefromstyle, Style
-from geometry import Vector, Point
-import misc 
+from .pbpstyle import updatefromstyle, Style
+from .geometry import Vector, Point
+from . import misc 
 import math
 import types
-import paths
+from . import paths
 
 def defaultStyle():
   return Style(tip=ArrowHead)

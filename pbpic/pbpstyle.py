@@ -1,4 +1,5 @@
-import exception, sys, inspect
+from . import exception
+import sys, inspect
 
 _stylestack = [{}]
 
@@ -36,7 +37,7 @@ def _onestyle(obj,key,toplevel=True):
   while(k>=0):
     s = _stylestack[k].get(obj)
     if s is not None:
-      if s.has_key(key):
+      if ky in s:
         return s[key]
     k-=1
 
@@ -44,7 +45,7 @@ def _onestyle(obj,key,toplevel=True):
     defaults = obj.defaultStyle
     if callable(defaults):
       defaults = defaults()
-    if defaults.has_key(key):
+    if key in defaults:
       return defaults.get(key)
 
   if hasattr(obj,'__module__'):
@@ -60,7 +61,7 @@ def _onestyle(obj,key,toplevel=True):
 def setstyle(obj,**kwargs):
   global _stylestack
   topstyle = _stylestack[-1]
-  if not topstyle.has_key(obj):
+  if not (obj in topstyle):
     topstyle[obj]={}
 
   topstyle[obj].update(kwargs)
@@ -73,7 +74,7 @@ def updatefromstyle(obj,keys,overrides,stylekey=None):
       stylekey = obj
   d = obj.__dict__
   for k in keys:
-    if overrides.has_key(k):
+    if k in overrides:
       d[k] = overrides[k]
     else:
       d[k] = _onestyle(stylekey,k)
@@ -92,9 +93,9 @@ class StyleTarget:
       # Look up the name in the caller's namespace
       frame = inspect.stack()[1][0]
       try:
-        if frame.f_locals.has_key(name):
+        if name in frame.f_locals:
           child = frame.f_locals.get(name)
-        elif frame.f_globals.has_key(name):
+        elif name in frame.f_globals:
           child = frame.f_globals.get(name)
       finally:
         del frame

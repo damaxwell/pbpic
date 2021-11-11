@@ -1,7 +1,7 @@
 from __future__ import division
-from geometry import Point, Vector, Path, AffineTransform
-from metric import pt, Length, Units
-from color import GrayColor
+from .geometry import Point, Vector, Path, AffineTransform
+from .metric import pt, Length, Units
+from .color import GrayColor
 import math
 import copy
 

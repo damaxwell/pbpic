@@ -1,6 +1,6 @@
 from __future__ import division
 import math
-from geometry import AffineTransform, Point, Vector
+from .geometry import AffineTransform, Point, Vector
 """
 Physical space is a plane with unit length equal to 1 point.
 """

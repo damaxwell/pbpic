@@ -1,14 +1,16 @@
-import os, sys, random, string, re, cStringIO
+import os, sys, random, string, re
+from io import StringIO
 from subprocess import Popen, PIPE
-import tex.dvi
-import inset
-from misc import FileSweeper
-from tex.devicefont import FontTable
-from geometry import BBox
-import pbpstyle as style
-import color
-from metric import pt
-import userprefs
+from .tex import dvi
+from . import inset
+from .misc import FileSweeper
+from .tex.devicefont import FontTable
+from .geometry import BBox
+from . import pbpstyle as style
+from . import color
+from .metric import pt
+from . import userprefs
+from .tex.dvi import DviReader
 import hashlib
 
 class _DviCache:
@@ -115,13 +117,13 @@ def texinset(text):
   p.run(text)
   dvi = p.dvi()
 
-  f = cStringIO.StringIO(dvi)
+  f = StringIO(dvi)
   dvireader=DviToInset(f)
   dvireader.run()
   c = dvireader.pages[0]
   return c
 
-class DviToInset(tex.dvi.DviReader):
+class DviToInset(DviReader):
   def __init__(self,f):
     tex.dvi.DviReader.__init__(self,f)
     self.pages = []
