@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO
 import array
 from pbpic.geometry import AffineTransform, Path, Vector, Point
 from .font import FontMetrics
@@ -11,7 +11,7 @@ class Type1Font:
 
   @staticmethod
   def fromPath( p ):
-    f = file( p, 'rb' )
+    f = open( p, 'rb' )
     return Type1Font( f )
 
   @staticmethod
@@ -20,7 +20,7 @@ class Type1Font:
   
   def __init__(self,stream):
     self.data = stream.read()
-    stream = StringIO.StringIO(self.data)
+    stream = BytesIO(self.data)
     self.stream = stream
     self.metrics = {}
     self.paths = {}
@@ -42,7 +42,7 @@ class Type1Font:
       self.start_public = 0
       self.end_private = self.find_eexec_end()
 
-    eexec_re = re.compile(".*currentfile[ ]+eexec[ \n\r\t]",re.DOTALL)    
+    eexec_re = re.compile(b".*currentfile[ ]+eexec[ \n\r\t]",re.DOTALL)    
     m = eexec_re.match(self.data) 
     if m is None:
       raise Type1Exception('Mangled Type1 Font: unable to partiton into public/private parts')
@@ -87,20 +87,20 @@ class Type1Font:
 
     ############################################################
     # FontName
-    m = re.search("/FontName[ \t]+/([^ \t]+)",self.public)
+    m = re.search(b"/FontName[ \t]+/([^ \t]+)",self.public)
     if m is None:
       raise Type1Exception('Type1 font missing FontName')
     self._fontName = m.groups()[0]
 
     ############################################################
     ## FontMatrix
-    fm_re = "/FontMatrix[ \t\n\r]+\[[ \t\n\r]*"
-    float_re = "([-+]?(?:\d+(?:\.\d*)?|\.\d+))"
-    for k in xrange(5):
+    fm_re = b"/FontMatrix[ \t\n\r]+\[[ \t\n\r]*"
+    float_re = b"([-+]?(?:\d+(?:\.\d*)?|\.\d+))"
+    for k in range(5):
       fm_re +=float_re
-      fm_re +="[ \t\n\r]+"
+      fm_re +=b"[ \t\n\r]+"
     fm_re +=float_re
-    fm_re +="[ \t\n\r]*\]"
+    fm_re +=b"[ \t\n\r]*\]"
     m = re.search(fm_re, self.public)
 
     self._fontMatrix = AffineTransform([ float(m.group(k+1)) for k in range(6) ])
@@ -109,7 +109,7 @@ class Type1Font:
 
     ############################################################
     ## Encoding vector
-    encoding_re = re.compile( "/Encoding[ \n\r\t]+(?:(StandardEncoding)|([0-9]+))")
+    encoding_re = re.compile( b"/Encoding[ \n\r\t]+(?:(StandardEncoding)|([0-9]+))")
     m = encoding_re.search( self.public )
     
     encodingStart = m.start(0)
@@ -118,7 +118,7 @@ class Type1Font:
     else:
       numEntries = int(m.groups()[1])
       a = self.public[encodingStart:]
-      entry_re = re.compile( "([0-9]+)[ ]*/([^ ]+)[ \n\r\t]+")
+      entry_re = re.compile( b"([0-9]+)[ ]*/([^ ]+)[ \n\r\t]+")
 
       encodingList = [ ".notDef" ] * numEntries
       for m in entry_re.finditer( a ):
@@ -128,7 +128,7 @@ class Type1Font:
 
   def parse_private(self):
     # lenIV
-    m = re.search("/lenIV[ \t\n\r]+([0-9]+)",self.private)
+    m = re.search(b"/lenIV[ \t\n\r]+([0-9]+)",self.private)
     if m is None:
       self.lenIV = 4
     else:
@@ -138,14 +138,14 @@ class Type1Font:
         raise Type1Exception('Type1 font has mangled lenIV')
 
     # Subrs
-    m = re.search('/Subrs[ \t\r\n]+([0-9]+)[ \t\r\n]',self.private)
+    m = re.search(b'/Subrs[ \t\r\n]+([0-9]+)[ \t\r\n]',self.private)
     if m == None:
       raise Type1Exception('')
     numSubrs = int(m.groups()[0])
     subr_base = m.end(0)
     tail = self.private[subr_base+1:]
     
-    subr_re = re.compile( "dup[ \t\r\n]+([0-9]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ ]+[ \t\r\n]")
+    subr_re = re.compile( b"dup[ \t\r\n]+([0-9]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ ]+[ \t\r\n]")
 
     subrs = [ None ] * numSubrs
     send = 0
@@ -159,7 +159,7 @@ class Type1Font:
     self.subrs = subrs
 
     #CharStrings
-    m = re.search('/CharStrings[ \t\r\n]+([0-9]+)[ \t\r\n]',self.private)
+    m = re.search(b'/CharStrings[ \t\r\n]+([0-9]+)[ \t\r\n]',self.private)
     if m == None:
       raise Type1Exception('Font missing CharStrings')
     numCharStrings = int(m.groups()[0])
@@ -167,7 +167,7 @@ class Type1Font:
     charstring_base = m.end(0)
     tail = self.private[charstring_base+1:]
     
-    charstring_re = re.compile( "/([^ \t\r\n/]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ \t\r\n]+[ \t\r\n]")
+    charstring_re = re.compile( b"/([^ \t\r\n/]+)[ \t\r\n]+([0-9]+)[ \t\r\n]+[^ \t\r\n]+[ \t\r\n]")
 
     charstrings = {}
     k = 0
@@ -178,7 +178,7 @@ class Type1Font:
         continue
       cstart = m.end(0)
       cend = cstart+int(m.groups()[1])
-      charstrings[m.groups()[0]] = (k,tail[cstart:cend])
+      charstrings[m.groups()[0].decode('utf-8')] = (k,tail[cstart:cend])
       k += 1
     self.charstrings = charstrings
     
@@ -392,7 +392,7 @@ class CharStringParser:
 
     while True:
       try:
-        c = self.f.next()
+        c = next(self.f)
         if isinstance(c,int):
           self.stack[self.top] = c
           self.top += 1
@@ -607,7 +607,7 @@ encrypt_c2 = 22719
 
 def decrypt( s, R ):
   bytes = array.array('B', s )
-  return decryptBytes( bytes, R).tostring()
+  return decryptBytes( bytes, R).tobytes()
 
 def decryptBytes( bytes, R):
   try:

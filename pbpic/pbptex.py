@@ -1,5 +1,5 @@
 import os, sys, random, string, re
-from io import StringIO
+from io import BytesIO
 from subprocess import Popen, PIPE
 from .tex import dvi
 from . import inset
@@ -28,8 +28,8 @@ class _DviCache:
   @staticmethod
   def hashKey(command,texsource):
     m = hashlib.md5();
-    m.update(command)
-    m.update(texsource)
+    m.update(command.encode('utf-8'))
+    m.update(texsource.encode('utf-8'))
     return m.digest()
     
   def load(self,command,texsource):
@@ -91,12 +91,12 @@ class TexProcessor:
     
     with FileSweeper([ basename+ext for ext in ['.aux','.log','.tex','.dvi']]):
       with open(basename+'.tex','wb') as f:
-        f.write(body)
+        f.write(body.encode('utf-8'))
       command = '%s %s' % (self.command,texFileName)
       p = Popen(command,stderr=PIPE,stdout=PIPE,shell=True)
       (stdout,stderr) = p.communicate()
       if p.returncode == 0:
-        with open(basename+'.dvi') as f:
+        with open(basename+'.dvi','rb') as f:
           self._dvi = f.read()
           self._errmsg = None
           dviCache().save(self.command,body,self._dvi)
@@ -117,7 +117,7 @@ def texinset(text):
   p.run(text)
   dvi = p.dvi()
 
-  f = StringIO(dvi)
+  f = BytesIO(dvi)
   dvireader=DviToInset(f)
   dvireader.run()
   c = dvireader.pages[0]
@@ -125,7 +125,7 @@ def texinset(text):
 
 class DviToInset(DviReader):
   def __init__(self,f):
-    tex.dvi.DviReader.__init__(self,f)
+    DviReader.__init__(self,f)
     self.pages = []
     self.color_stack=[]
     self.canvas = None

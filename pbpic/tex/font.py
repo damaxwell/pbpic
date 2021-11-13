@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO
 from . import common, resource
 
 class TexFont:
@@ -6,6 +6,8 @@ class TexFont:
     """A font record in a DVI file consists of the font's name, its scaled size (s), its design size (d), 
     and the number by which the font is referred to in the DVI file (index).
     """
+    if type(fontname) == bytes:
+      fontname = fontname.decode('utf-8')
     self.fontname = fontname
     self.s = s
     self.d = d
@@ -51,9 +53,9 @@ class TFM:
   # each character. To access the width of character c, simply use: tfm.w[c], etc.
 
   def __init__(self,path):
-    with file(path,'rb') as f: 
+    with open(path,'rb') as f: 
       self.data = f.read()
-    self.input = StringIO(self.data); input = self.input
+    self.input = BytesIO(self.data); input = self.input
     self.lf = common.readUInt2(input) # length of file
     self.lh = common.readUInt2(input) # length of header
     self.bc = common.readUInt2(input) # smallest char code

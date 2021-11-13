@@ -1,7 +1,7 @@
 import logging
 # import AsciiHex # For conversion to Type42
 from pbpic.geometry import Path
-from io import StringIO
+from io import BytesIO
 from .font import FontMetrics
 
 logging.basicConfig(level=logging.DEBUG)
@@ -298,7 +298,7 @@ class TrueTypeFont:
   fromPath = staticmethod( fromPath )
 
   def fromData( d ):
-    return TrueTypeFont( StringIO.StringIO( d ) )
+    return TrueTypeFont( BytesIO.StringIO( d ) )
   fromData = staticmethod( fromData )
 
   def __init__( self, f, offsetTableStart=0 ):

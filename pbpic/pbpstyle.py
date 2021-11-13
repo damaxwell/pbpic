@@ -37,7 +37,7 @@ def _onestyle(obj,key,toplevel=True):
   while(k>=0):
     s = _stylestack[k].get(obj)
     if s is not None:
-      if ky in s:
+      if key in s:
         return s[key]
     k-=1
 

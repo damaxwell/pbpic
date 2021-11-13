@@ -153,7 +153,7 @@ class CairoRenderer:
 
     p = Point(0,0)
     g = len(s)*[None]
-    for k in xrange(len(s)):
+    for k in range(len(s)):
       g[k] = (s[k],p.x,p.y)
       p = p + metrics[k].advance
     self.ctx.show_glyphs(g)
@@ -233,8 +233,10 @@ class CairoFreetypeFont:
   @staticmethod
   def initialize():
     # find shared objects
-    CairoFreetypeFont._freetype_so = ctypes.CDLL (ctypes.util.find_library("freetype") )
-    CairoFreetypeFont._cairo_so = ctypes.CDLL ( ctypes.util.find_library("cairo") )
+    freetype_lib_path = ctypes.util.find_library("freetype")
+    CairoFreetypeFont._freetype_so = ctypes.CDLL (freetype_lib_path)
+    cairo_lib_path = ctypes.util.find_library("cairo")
+    CairoFreetypeFont._cairo_so = ctypes.CDLL ( cairo_lib_path )
 
     # initialize freetype
     CairoFreetypeFont._ft_lib = ctypes.c_void_p ()
@@ -242,6 +244,7 @@ class CairoFreetypeFont:
       raise "Error initialising FreeType library."
 
     CairoFreetypeFont._surface = cairo.ImageSurface (cairo.FORMAT_A8, 0, 0)
+
 
   def __init__(self,descriptor,loadoptions=0):
     self.ft_face = None
@@ -263,9 +266,12 @@ class CairoFreetypeFont:
       if FT_Err_Ok != self._freetype_so.FT_New_Memory_Face(self._ft_lib, self.font_data, len(self.font_data), 0, ctypes.byref(ft_face)):
             raise Exception("Error creating FreeType memory font face for " + filename)
     else:
+      print(self._freetype_so)
       filename = descriptor.path
       faceindex = descriptor.faceindex
-      if FT_Err_Ok != self._freetype_so.FT_New_Face(self._ft_lib, filename, faceindex, ctypes.byref(ft_face)):
+      errc = self._freetype_so.FT_New_Face(self._ft_lib, filename.encode('utf-8'), faceindex, ctypes.byref(ft_face))
+      print("error code: %d" % errc)
+      if FT_Err_Ok != self._freetype_so.FT_New_Face(self._ft_lib, filename.encode('utf-8'), faceindex, ctypes.byref(ft_face)):
           raise Exception("Error creating FreeType font face for " + filename)
     self.ft_face = ft_face
 

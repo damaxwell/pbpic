@@ -1,5 +1,5 @@
 from . import common, font
-from io import StringIO
+from io import BytesIO
 
 class DviReader:
   def __init__(self, input):
@@ -186,7 +186,7 @@ class DviReader:
 
   def fntdef(self):
     key = self.state.k
-    if not self.fonttable.has_key(key):
+    if not key in self.fonttable:
       f = font.TexFont(self.state.fontname,self.state.s,self.state.d,self.state.k)
       self.fonttable[key] = f
 
@@ -563,7 +563,7 @@ class StartVChar(DviCmd):
 
     r.scale *= (r.currentfont.s*1.0/(1 << 20))
 
-    r.input = StringIO(vFont.packets[self.c].dvi)
+    r.input = BytesIO(vFont.packets[self.c].dvi)
     r.states = r.vfont_states
 
     defaultFont = vFont.defaultFont

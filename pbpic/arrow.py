@@ -3,7 +3,6 @@ from .pbpstyle import updatefromstyle, Style
 from .geometry import Vector, Point
 from . import misc 
 import math
-import types
 from . import paths
 
 def defaultStyle():
@@ -130,7 +129,7 @@ class ArrowTo:
 
   def __init__(self,**kwargs):
     updatefromstyle(self,('tip',),kwargs)
-    if type(self.tip) == types.ClassType:
+    if isinstance( self.tip, type):
       self.tip = self.tip()
     
   def drawto(self,canvas,to=(0,0)):
@@ -151,9 +150,9 @@ class ArrowFromTo:
     if self.totip is None:
       self.totip = self.tip
 
-    if type(self.fromtip) == types.ClassType:
+    if isinstance( self.fromtip, 'type'):
       self.fromtip = self.fromtip()
-    if type(self.totip) == types.ClassType:
+    if isinstance(self.totip, 'type'):
       self.totip = self.totip()
 
   def drawto(self,canvas,to=[1,0]):

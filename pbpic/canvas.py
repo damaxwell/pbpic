@@ -354,6 +354,7 @@ class Canvas:
 
   @nobuild
   def showglyphs(self,s,fontdescriptor):
+    print(fontdescriptor)
     font = sysfont.findcachedfont(fontdescriptor)
     metrics = [ font.metricsForGlyph(c) for c in s ]
 
