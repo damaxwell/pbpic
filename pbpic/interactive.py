@@ -150,7 +150,7 @@ class InsetGuard:
 def drawtex(text,*args,**kwargs):
   c=canvas.getcanvas()
   i = texinset(text)
-  if not kwargs.has_key('origin'):
+  if 'origin' not in kwargs:
     kwargs['origin']='origin'
   i.drawto(c,**kwargs)
 
