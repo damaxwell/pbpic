@@ -120,7 +120,7 @@ class Type1Font:
       a = self.public[encodingStart:]
       entry_re = re.compile( b"([0-9]+)[ ]*/([^ ]+)[ \n\r\t]+")
 
-      encodingList = [ ".notDef" ] * numEntries
+      encodingList = [ b".notDef" ] * numEntries
       for m in entry_re.finditer( a ):
         encodingList[int(m.groups()[0])] = m.groups()[1]
 
@@ -581,7 +581,7 @@ class EncodingVector:
     if encoding == 'StandardEncoding':
       self.ev = AdobeStandardEncoding
     else:
-      self.ev = [g.split('/')[-1] for g in encoding] # Remove any leading slash
+      self.ev = [g.decode("utf-8").split('/')[-1] for g in encoding] # Remove any leading slash
     
     
   def __repr__(self):
